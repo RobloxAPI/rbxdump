@@ -79,8 +79,8 @@ type Taggable interface {
 	UnsetTag(tags ...string)
 	// Tags returns a list of enabled tags.
 	Tags() (tags []string)
-	// Len returns the number of tags.
-	Len() (n int)
+	// TagCount returns the number of enabled tags.
+	TagCount() (n int)
 }
 
 type taggable map[string]bool
@@ -112,7 +112,7 @@ func (t taggable) Tags() []string {
 	return a
 }
 
-func (t taggable) Len() int {
+func (t taggable) TagCount() int {
 	return len(t)
 }
 
