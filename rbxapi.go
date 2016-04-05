@@ -319,7 +319,7 @@ type Argument struct {
 }
 
 func (arg Argument) String() string {
-	if arg.Default {
+	if arg.Default != nil {
 		return arg.Type + " " + arg.Name + " = " + *arg.Default
 	}
 	return arg.Type + " " + arg.Name
