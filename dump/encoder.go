@@ -243,7 +243,7 @@ func (e *encoder) encodeEnumItem(enum *rbxapi.Enum, item *rbxapi.EnumItem) {
 }
 
 func (e *encoder) encodeTags(t rbxapi.Taggable) {
-	if t.Len() == 0 {
+	if t.TagCount() == 0 {
 		return
 	}
 
