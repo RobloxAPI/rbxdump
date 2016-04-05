@@ -314,6 +314,13 @@ type Argument struct {
 	Default *string
 }
 
+func (arg Argument) String() string {
+	if arg.Default {
+		return arg.Type + " " + arg.Name + " = " + *arg.Default
+	}
+	return arg.Type + " " + arg.Name
+}
+
 // Member is a single member of a Class.
 type Member interface {
 	// Type returns a string representation of the member type.
