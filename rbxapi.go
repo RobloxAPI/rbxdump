@@ -12,41 +12,43 @@ type TagGroup struct {
 	Tags []string
 }
 
-var (
+// GroupOrder is a list of known tag groups. If an item has multiple tags,
+// this indicates the order in which those tags should appear.
+var GroupOrder = []TagGroup{
 	// Each tag may appear on any item.
-	MetadataItem = TagGroup{
+	TagGroup{
 		Name: "MetadataItem",
 		Tags: []string{
 			"notbrowsable",
 			"deprecated",
 			"backend",
 		},
-	}
+	},
 	// Each tag may appear on any Class.
-	MetadataClass = TagGroup{
+	TagGroup{
 		Name: "MetadataClass",
 		Tags: []string{
 			"notCreatable",
 		},
-	}
+	},
 	// Each tag may appear on any Property.
-	MetadataProperty = TagGroup{
+	TagGroup{
 		Name: "MetadataProperty",
 		Tags: []string{
 			"hidden",
 			"readonly",
 			"writeonly",
 		},
-	}
+	},
 	// Each tag may appear on any Callback.
-	MetadataCallback = TagGroup{
+	TagGroup{
 		Name: "MetadataCallback",
 		Tags: []string{
 			"noyield",
 		},
-	}
+	},
 	// One tag may appear on any Member.
-	MemberSecurity = TagGroup{
+	TagGroup{
 		Name: "MemberSecurity",
 		Tags: []string{
 			"LocalUserSecurity",
@@ -56,17 +58,7 @@ var (
 			"RobloxSecurity",
 			"WritePlayerSecurity",
 		},
-	}
-)
-
-// GroupOrder is a list of known tag groups. If an item has multiple tags,
-// this indicates the order in which those tags should appear.
-var GroupOrder = []TagGroup{
-	MetadataItem,
-	MetadataClass,
-	MetadataProperty,
-	MetadataCallback,
-	MemberSecurity,
+	},
 }
 
 // Taggable is an API item that may have a number of tags attached to it.
