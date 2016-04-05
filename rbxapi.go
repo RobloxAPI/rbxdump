@@ -116,12 +116,15 @@ func (t taggable) TagCount() int {
 	return len(t)
 }
 
-// API represents the root of an API dump.
+// API is the top-level structure containing classes and enums.
 type API struct {
+	// Classes maps class names to classes.
 	Classes map[string]*Class
-	Enums   map[string]*Enum
+	// Enums maps enum names to enums.
+	Enums map[string]*Enum
 }
 
+// NewAPI returns a new, initialized API object.
 func NewAPI() *API {
 	return &API{
 		Classes: make(map[string]*Class),
@@ -134,10 +137,8 @@ func NewAPI() *API {
 type ClassTree struct {
 	// Name is the name of the class the node represents.
 	Name string
-
 	// Class is the Class that the node represents.
 	Class *Class
-
 	// Subclasses is a list containing each class that inherits from this
 	// class.
 	Subclasses []*ClassTree
@@ -173,7 +174,7 @@ func TreeList(tree []*ClassTree) (list []*Class) {
 
 // ClassTree returns a list of ClassTree nodes. The list contains root nodes
 // of the tree (classes that have no superclass). It also contains classes
-// whose superclass does not exist.
+// whose superclass does not exist in the API.
 func (api *API) ClassTree() []*ClassTree {
 	nodes := make(map[string]*ClassTree)
 	for name, class := range api.Classes {
@@ -198,7 +199,8 @@ func (api *API) ClassTree() []*ClassTree {
 	return root.Subclasses
 }
 
-// SortClassesByName sorts classes by name.
+// SortClassesByName can be used with the sort package to sort a list of
+// classes by name.
 type SortClassesByName []*Class
 
 func (l SortClassesByName) Len() int           { return len(l) }
@@ -217,7 +219,7 @@ func (api *API) ClassList() []*Class {
 	return list
 }
 
-// SortEnumsByName sorts enums by name.
+// SortEnumsByName can be used with the sort package to sort enums by name.
 type SortEnumsByName []*Enum
 
 func (l SortEnumsByName) Len() int           { return len(l) }
@@ -255,14 +257,16 @@ func (class *Class) String() string {
 	return "Class " + class.Name
 }
 
-// SortMembersByName sorts a list of members by name.
+// SortMembersByName can be used with the sort package to sort a list of
+// members by name.
 type SortMembersByName []Member
 
 func (l SortMembersByName) Len() int           { return len(l) }
 func (l SortMembersByName) Less(i, j int) bool { return l[i].Name() < l[j].Name() }
 func (l SortMembersByName) Swap(i, j int)      { l[i], l[j] = l[j], l[i] }
 
-// SortMembersByType sorts a list of members by member type, then by name.
+// SortMembersByType can be used with the sort package to sort a list of
+// members by member type, then by name.
 type SortMembersByType []Member
 
 // Sort in reverse so that anything else (0) is sorted to the end of the list.
