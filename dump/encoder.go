@@ -75,7 +75,27 @@ func (e *encoder) flush() bool {
 	return true
 }
 
-func (e *encoder) checkChars(isChar func(byte) bool, s string) {
+func (e *encoder) checkChars(check charCheck, noempty bool, s, msg string) {
+	if len(s) == 0 {
+		if noempty {
+			e.setError(msg + ": unexpected empty string")
+		}
+		return
+	}
+	if check.nofix {
+		if s[0] == ' ' {
+			e.setError(msg + ": unexpected leading space")
+		} else if s[len(s)-1] == ' ' {
+			e.setError(msg + ": unexpected trailing space")
+		}
+		return
+	}
+	for _, b := range []byte(s) {
+		if !check.isChar(b) {
+			e.setError(msg + ": unexpected character")
+			return
+		}
+	}
 }
 
 func (e *encoder) encode() (n int64, err error) {
@@ -97,8 +117,8 @@ finish:
 }
 
 func (e *encoder) encodeClass(class *rbxapi.Class) {
-	e.checkChars(isName, class.Name)
-	e.checkChars(isName, class.Superclass)
+	e.checkChars(isName, true, class.Name, "Class.Name")
+	e.checkChars(isName, false, class.Superclass, "Class.Superclass")
 
 	e.writeString(e.prefix)
 	e.writeString("Class ")
@@ -121,8 +141,8 @@ func (e *encoder) encodeClass(class *rbxapi.Class) {
 }
 
 func (e *encoder) encodeMember(class *rbxapi.Class, member rbxapi.Member) {
-	e.checkChars(isName, member.Name())
-	e.checkChars(isName, member.Class())
+	e.checkChars(isName, true, member.Name(), "Member.Name")
+	e.checkChars(isName, true, member.Class(), "Member.Class")
 	if member.Class() != class.Name {
 		e.setError("member class does not match parent class")
 		return
@@ -134,14 +154,14 @@ func (e *encoder) encodeMember(class *rbxapi.Class, member rbxapi.Member) {
 
 	switch member := member.(type) {
 	case *rbxapi.Property:
-		e.checkChars(isName, member.ValueType)
+		e.checkChars(isName, true, member.ValueType, "Property.ValueType")
 		e.writeString(member.ValueType)
 		e.writeString(" ")
 		e.writeString(member.MemberClass)
 		e.writeString(".")
 		e.writeString(member.MemberName)
 	case *rbxapi.Function:
-		e.checkChars(isName, member.ReturnType)
+		e.checkChars(isName, true, member.ReturnType, "Function.ReturnType")
 		e.writeString(member.ReturnType)
 		e.writeString(" ")
 		e.writeString(member.MemberClass)
@@ -149,7 +169,7 @@ func (e *encoder) encodeMember(class *rbxapi.Class, member rbxapi.Member) {
 		e.writeString(member.MemberName)
 		e.encodeArguments(member.Arguments, true)
 	case *rbxapi.YieldFunction:
-		e.checkChars(isName, member.ReturnType)
+		e.checkChars(isName, true, member.ReturnType, "YieldFunction.ReturnType")
 		e.writeString(member.ReturnType)
 		e.writeString(" ")
 		e.writeString(member.MemberClass)
@@ -162,7 +182,7 @@ func (e *encoder) encodeMember(class *rbxapi.Class, member rbxapi.Member) {
 		e.writeString(member.MemberName)
 		e.encodeArguments(member.Arguments, false)
 	case *rbxapi.Callback:
-		e.checkChars(isName, member.ReturnType)
+		e.checkChars(isName, true, member.ReturnType, "Callback.ReturnType")
 		e.writeString(member.ReturnType)
 		e.writeString(" ")
 		e.writeString(member.MemberClass)
@@ -194,20 +214,20 @@ func (e *encoder) encodeArgument(arg rbxapi.Argument, canDefault bool) {
 		return
 	}
 
-	e.checkChars(isType, arg.Type)
-	e.checkChars(isName, arg.Name)
+	e.checkChars(isType, true, arg.Type, "Argument.Type")
+	e.checkChars(isName, true, arg.Name, "Argument.Name")
 	e.writeString(arg.Type)
 	e.writeString(" ")
 	e.writeString(arg.Name)
 	if arg.Default != nil {
-		e.checkChars(isDefault, *arg.Default)
+		e.checkChars(isDefault, false, *arg.Default, "Argument.Default")
 		e.writeString(" = ")
 		e.writeString(*arg.Default)
 	}
 }
 
 func (e *encoder) encodeEnum(enum *rbxapi.Enum) {
-	e.checkChars(isName, enum.Name)
+	e.checkChars(isName, true, enum.Name, "Enum.Name")
 
 	e.writeString(e.prefix)
 	e.writeString("Enum ")
@@ -224,8 +244,8 @@ func (e *encoder) encodeEnum(enum *rbxapi.Enum) {
 }
 
 func (e *encoder) encodeEnumItem(enum *rbxapi.Enum, item *rbxapi.EnumItem) {
-	e.checkChars(isName, item.Name)
-	e.checkChars(isName, item.Enum)
+	e.checkChars(isName, true, item.Name, "EnumItem.Name")
+	e.checkChars(isName, true, item.Enum, "EnumItem.Enum")
 	if item.Enum != enum.Name {
 		e.setError("enum item enum does not match parent enum")
 		return
@@ -295,7 +315,7 @@ loop:
 	tags = append(tags, sorted...)
 
 	for _, tag := range tags {
-		e.checkChars(isTag, tag)
+		e.checkChars(isTag, false, tag, "Tag")
 		e.writeString(" [")
 		e.writeString(tag)
 		e.writeString("]")

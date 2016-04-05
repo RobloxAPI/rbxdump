@@ -88,40 +88,10 @@ func (d *decoder) expectChar(c byte) {
 	}
 }
 
-func isSpace(b byte) bool {
-	return b == ' ' || b == '\t' || b == '\f'
-}
-
-func isName(b byte) bool {
-	return isWord(b) || b == '<' || b == '>' || b == ' '
-}
-
-func isWord(b byte) bool {
-	return b == '_' ||
-		('0' <= b && b <= '9') ||
-		('A' <= b && b <= 'Z') ||
-		('a' <= b && b <= 'z')
-}
-
-func isInt(b byte) bool {
-	return ('0' <= b && b <= '9')
-}
-
-func isType(b byte) bool {
-	return isWord(b)
-}
-
-func isDefault(b byte) bool {
-	return b != ',' && b != ')'
-}
-
-func isTag(b byte) bool {
-	return b != ']'
-}
-
 // Decode characters that satisfy the isChar function. If a space satisfies
-// isChar, then trailing spaces will be excluded from the result.
-func (d *decoder) decodeChars(isChar func(byte) bool, notrail bool) string {
+// isChar, then trailing spaces will be excluded from the result. Assumes that
+// leading spaces have already been read.
+func (d *decoder) decodeChars(check charCheck) string {
 	if d.err != nil {
 		return ""
 	}
@@ -132,7 +102,7 @@ func (d *decoder) decodeChars(isChar func(byte) bool, notrail bool) string {
 		if !ok {
 			goto finish
 		}
-		if !isChar(b) {
+		if !check.isChar(b) {
 			d.ungetc(b)
 			goto finish
 		}
@@ -145,7 +115,7 @@ func (d *decoder) decodeChars(isChar func(byte) bool, notrail bool) string {
 	}
 finish:
 	b := d.buf.Bytes()
-	if notrail {
+	if check.nofix {
 		// Remove trailing spaces.
 		for i := 0; i < width; i++ {
 			d.ungetc(b[len(b)-1-i])
@@ -155,8 +125,8 @@ finish:
 	return string(b)
 }
 
-func (d *decoder) expectChars(isChar func(byte) bool, notrail bool, msg string) (s string) {
-	if s = d.decodeChars(isChar, notrail); s == "" {
+func (d *decoder) expectChars(check charCheck, msg string) (s string) {
+	if s = d.decodeChars(check); s == "" {
 		d.syntaxError("expected " + msg)
 		return ""
 	}
@@ -209,19 +179,19 @@ func (d *decoder) expectString(v string, msg string) {
 
 // Expect at least one whitespace character.
 func (d *decoder) expectWhitespace() {
-	if d.decodeChars(isSpace, false) == "" {
+	if d.decodeChars(isSpace) == "" {
 		d.syntaxError("expected whitespace")
 	}
 }
 
 // Expect zero or more whitespace characters.
 func (d *decoder) skipWhitespace() {
-	d.decodeChars(isSpace, false)
+	d.decodeChars(isSpace)
 }
 
 // Expect an integer.
 func (d *decoder) expectInt() int {
-	i, err := strconv.Atoi(d.decodeChars(isInt, false))
+	i, err := strconv.Atoi(d.decodeChars(isInt))
 	if err != nil {
 		d.syntaxError("expected integer")
 	}
@@ -319,7 +289,7 @@ func (d *decoder) decodeLine() (line bool) {
 }
 
 func (d *decoder) decodeItem() {
-	word := d.expectChars(isWord, false, "item type")
+	word := d.expectChars(isWord, "item type")
 	d.expectWhitespace()
 	switch word {
 	case "Class":
@@ -346,11 +316,11 @@ func (d *decoder) decodeItem() {
 func (d *decoder) decodeClass() {
 	d.clearParent()
 	class := rbxapi.NewClass("")
-	class.Name = d.expectChars(isName, true, "class name")
+	class.Name = d.expectChars(isClassName, "class name")
 	d.skipWhitespace()
 	if d.checkChar(':') {
 		d.skipWhitespace()
-		class.Superclass = d.expectChars(isName, true, "superclass name")
+		class.Superclass = d.expectChars(isClassName, "superclass name")
 		d.skipWhitespace()
 	}
 	d.decodeTags(class)
@@ -359,14 +329,14 @@ func (d *decoder) decodeClass() {
 
 func (d *decoder) decodeProperty() {
 	member := rbxapi.NewProperty("", "")
-	member.ValueType = d.expectChars(isType, false, "value type")
+	member.ValueType = d.expectChars(isType, "value type")
 	d.expectWhitespace()
-	member.MemberClass = d.expectChars(isName, true, "member class")
+	member.MemberClass = d.expectChars(isClassName, "member class")
 	d.expectClass(member.MemberClass)
 	d.skipWhitespace()
 	d.expectChar('.')
 	d.skipWhitespace()
-	member.MemberName = d.expectChars(isName, true, "member name")
+	member.MemberName = d.expectChars(isMemberName, "member name")
 	d.skipWhitespace()
 	d.decodeTags(member)
 	d.addMember(member)
@@ -374,14 +344,14 @@ func (d *decoder) decodeProperty() {
 
 func (d *decoder) decodeFunction() {
 	member := rbxapi.NewFunction("", "")
-	member.ReturnType = d.expectChars(isType, false, "return type")
+	member.ReturnType = d.expectChars(isType, "return type")
 	d.expectWhitespace()
-	member.MemberClass = d.expectChars(isName, true, "member class")
+	member.MemberClass = d.expectChars(isClassName, "member class")
 	d.expectClass(member.MemberClass)
 	d.skipWhitespace()
 	d.expectChar(':')
 	d.skipWhitespace()
-	member.MemberName = d.expectChars(isName, true, "member name")
+	member.MemberName = d.expectChars(isMemberName, "member name")
 	d.skipWhitespace()
 	member.Arguments = d.decodeArguments(true)
 	d.skipWhitespace()
@@ -391,14 +361,14 @@ func (d *decoder) decodeFunction() {
 
 func (d *decoder) decodeYieldFunction() {
 	member := rbxapi.NewYieldFunction("", "")
-	member.ReturnType = d.expectChars(isType, false, "return type")
+	member.ReturnType = d.expectChars(isType, "return type")
 	d.expectWhitespace()
-	member.MemberClass = d.expectChars(isName, true, "member class")
+	member.MemberClass = d.expectChars(isClassName, "member class")
 	d.expectClass(member.MemberClass)
 	d.skipWhitespace()
 	d.expectChar(':')
 	d.skipWhitespace()
-	member.MemberName = d.expectChars(isName, true, "member name")
+	member.MemberName = d.expectChars(isMemberName, "member name")
 	d.skipWhitespace()
 	member.Arguments = d.decodeArguments(true)
 	d.skipWhitespace()
@@ -408,10 +378,10 @@ func (d *decoder) decodeYieldFunction() {
 
 func (d *decoder) decodeEvent() {
 	member := rbxapi.NewEvent("", "")
-	member.MemberClass = d.expectChars(isName, true, "member class")
+	member.MemberClass = d.expectChars(isClassName, "member class")
 	d.expectClass(member.MemberClass)
 	d.expectChar('.')
-	member.MemberName = d.expectChars(isName, true, "member name")
+	member.MemberName = d.expectChars(isMemberName, "member name")
 	d.skipWhitespace()
 	member.Arguments = d.decodeArguments(false)
 	d.skipWhitespace()
@@ -421,14 +391,14 @@ func (d *decoder) decodeEvent() {
 
 func (d *decoder) decodeCallback() {
 	member := rbxapi.NewCallback("", "")
-	member.ReturnType = d.expectChars(isType, false, "return type")
+	member.ReturnType = d.expectChars(isType, "return type")
 	d.expectWhitespace()
-	member.MemberClass = d.expectChars(isName, true, "member class")
+	member.MemberClass = d.expectChars(isClassName, "member class")
 	d.expectClass(member.MemberClass)
 	d.skipWhitespace()
 	d.expectChar('.')
 	d.skipWhitespace()
-	member.MemberName = d.expectChars(isName, true, "member name")
+	member.MemberName = d.expectChars(isMemberName, "member name")
 	d.skipWhitespace()
 	member.Arguments = d.decodeArguments(false)
 	d.skipWhitespace()
@@ -457,9 +427,9 @@ func (d *decoder) decodeArguments(canDefault bool) (args []rbxapi.Argument) {
 }
 
 func (d *decoder) decodeArgument(canDefault bool) (arg rbxapi.Argument) {
-	arg.Type = d.expectChars(isType, false, "type")
+	arg.Type = d.expectChars(isType, "type")
 	d.expectWhitespace()
-	arg.Name = d.expectChars(isName, true, "argument name")
+	arg.Name = d.expectChars(isArgName, "argument name")
 	if !canDefault {
 		return arg
 	}
@@ -476,12 +446,12 @@ func (d *decoder) decodeArgument(canDefault bool) (arg rbxapi.Argument) {
 // Decode default argument value. This includes any character that isn't ','
 // or ')'. Trailing spaces are also excluded.
 func (d *decoder) decodeDefault() string {
-	return d.decodeChars(isDefault, true)
+	return d.decodeChars(isDefault)
 }
 
 func (d *decoder) decodeEnum() {
 	enum := rbxapi.NewEnum("")
-	enum.Name = d.expectChars(isName, true, "enum name")
+	enum.Name = d.expectChars(isEnumName, "enum name")
 	d.skipWhitespace()
 	d.decodeTags(enum)
 	d.addEnum(enum)
@@ -489,11 +459,11 @@ func (d *decoder) decodeEnum() {
 
 func (d *decoder) decodeEnumItem() {
 	item := rbxapi.NewEnumItem("", "")
-	item.Enum = d.expectChars(isName, true, "enum name")
+	item.Enum = d.expectChars(isEnumName, "enum name")
 	d.skipWhitespace()
 	d.expectChar('.')
 	d.skipWhitespace()
-	item.Name = d.expectChars(isName, true, "enum item name")
+	item.Name = d.expectChars(isEnumItemName, "enum item name")
 	d.skipWhitespace()
 	d.expectChar(':')
 	d.skipWhitespace()
@@ -512,7 +482,7 @@ func (d *decoder) decodeTags(t rbxapi.Taggable) {
 }
 
 func (d *decoder) decodeTag() string {
-	s := d.decodeChars(isTag, true)
+	s := d.decodeChars(isTag)
 	d.expectChar(']')
 	return s
 }
