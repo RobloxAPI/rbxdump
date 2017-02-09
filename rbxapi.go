@@ -6,61 +6,6 @@ import (
 	"sort"
 )
 
-// TagGroup is a list of known tags that appear only in certain contexts.
-type TagGroup struct {
-	Name string
-	Tags []string
-}
-
-// GroupOrder is a list of known tag groups. If an item has multiple tags,
-// this indicates the order in which those tags should appear.
-var GroupOrder = []TagGroup{
-	// Each tag may appear on any item.
-	TagGroup{
-		Name: "MetadataItem",
-		Tags: []string{
-			"notbrowsable",
-			"deprecated",
-			"backend",
-		},
-	},
-	// Each tag may appear on any Class.
-	TagGroup{
-		Name: "MetadataClass",
-		Tags: []string{
-			"notCreatable",
-		},
-	},
-	// Each tag may appear on any Property.
-	TagGroup{
-		Name: "MetadataProperty",
-		Tags: []string{
-			"hidden",
-			"readonly",
-			"writeonly",
-		},
-	},
-	// Each tag may appear on any Callback.
-	TagGroup{
-		Name: "MetadataCallback",
-		Tags: []string{
-			"noyield",
-		},
-	},
-	// One tag may appear on any Member.
-	TagGroup{
-		Name: "MemberSecurity",
-		Tags: []string{
-			"LocalUserSecurity",
-			"PluginSecurity",
-			"RobloxPlaceSecurity",
-			"RobloxScriptSecurity",
-			"RobloxSecurity",
-			"WritePlayerSecurity",
-		},
-	},
-}
-
 // Taggable is an API item that may have a number of tags attached to it.
 type Taggable interface {
 	// Tag returns whether a given tag is enabled.
