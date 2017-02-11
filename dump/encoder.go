@@ -328,7 +328,7 @@ func (e *encoder) encodeTags(t rbxapi.Taggable) {
 		unsorted[tag] = true
 	}
 loop:
-	for _, group := range rbxapi.GroupOrder {
+	for _, group := range GroupOrder {
 		// Filter groups not in the correct context.
 		switch group.Name {
 		case "MetadataItem":
