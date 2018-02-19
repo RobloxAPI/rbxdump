@@ -125,6 +125,41 @@ finish:
 	return string(b)
 }
 
+// Decode characters from the given balanced brackets. Assumes the first
+// opening bracket has already been decoded, and excludes the last closing
+// bracket from the result. Spaces are treated the same as in decodeChars.
+func (d *decoder) decodeNested(openChar, closeChar byte) string {
+	if d.err != nil {
+		return ""
+	}
+	d.buf.Reset()
+	width := 0
+	for depth := 1; ; {
+		b, ok := d.getc()
+		if !ok {
+			goto finish
+		}
+		switch b {
+		case openChar:
+			depth++
+		case closeChar:
+			depth--
+			if depth <= 0 {
+				goto finish
+			}
+		}
+		if b == ' ' {
+			width++
+		} else {
+			width = 0
+		}
+		d.buf.WriteByte(b)
+	}
+finish:
+	b := d.buf.Bytes()
+	return string(b[:len(b)-width])
+}
+
 func (d *decoder) expectChars(check charCheck, msg string) (s string) {
 	if s = d.decodeChars(check); s == "" {
 		d.syntaxError("expected " + msg)
@@ -482,9 +517,7 @@ func (d *decoder) decodeTags(t rbxapi.Taggable) {
 }
 
 func (d *decoder) decodeTag() string {
-	s := d.decodeChars(isTag)
-	d.expectChar(']')
-	return s
+	return d.decodeNested('[', ']')
 }
 
 func Decode(r io.Reader) (api *rbxapi.API, err error) {
