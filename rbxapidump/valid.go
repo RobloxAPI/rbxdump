@@ -1,4 +1,4 @@
-package dump
+package rbxapidump
 
 type charCheck struct {
 	// Whether leading/trailing spaces are valid.
@@ -33,7 +33,7 @@ var (
 		return isName.isChar(b)
 	}}
 	isType = charCheck{nofix: false, isChar: func(b byte) bool {
-		return isWord.isChar(b)
+		return isWord.isChar(b) || b == ':'
 	}}
 	isEnumName = charCheck{nofix: true, isChar: func(b byte) bool {
 		return isName.isChar(b)

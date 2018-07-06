@@ -1,4 +1,4 @@
-package dump
+package rbxapidump
 
 import (
 	"bufio"
@@ -6,6 +6,7 @@ import (
 	"github.com/robloxapi/rbxapi"
 	"io"
 	"strconv"
+	"strings"
 )
 
 type SyntaxError struct {
@@ -18,15 +19,15 @@ func (e *SyntaxError) Error() string {
 }
 
 type decoder struct {
-	api   *rbxapi.API
+	root  *Root
 	r     io.ByteReader
 	next  []byte
 	buf   bytes.Buffer
 	n     int64
 	err   error
 	line  int
-	class *rbxapi.Class
-	enum  *rbxapi.Enum
+	class *Class
+	enum  *Enum
 }
 
 // Creates a SyntaxError with the current line number.
@@ -234,28 +235,20 @@ func (d *decoder) expectInt() int {
 }
 
 // Add a class to the API. Sets class parent.
-func (d *decoder) addClass(class *rbxapi.Class) {
+func (d *decoder) addClass(class *Class) {
 	if d.err != nil {
 		return
 	}
-	if _, exists := d.api.Classes[class.Name]; exists {
-		d.syntaxError("class '" + class.Name + "' already exists")
-		return
-	}
-	d.api.Classes[class.Name] = class
+	d.root.Classes = append(d.root.Classes, class)
 	d.class = class
 }
 
 // Add an enum to the API. Sets enum parent.
-func (d *decoder) addEnum(enum *rbxapi.Enum) {
+func (d *decoder) addEnum(enum *Enum) {
 	if d.err != nil {
 		return
 	}
-	if _, exists := d.api.Enums[enum.Name]; exists {
-		d.syntaxError("enum '" + enum.Name + "' already exists")
-		return
-	}
-	d.api.Enums[enum.Name] = enum
+	d.root.Enums = append(d.root.Enums, enum)
 	d.enum = enum
 }
 
@@ -264,15 +257,11 @@ func (d *decoder) addMember(member rbxapi.Member) {
 	if d.err != nil {
 		return
 	}
-	if _, exists := d.class.Members[member.Name()]; exists {
-		d.syntaxError("member '" + member.Name() + "' already exists")
-		return
-	}
-	d.class.Members[member.Name()] = member
+	d.class.Members = append(d.class.Members, member)
 }
 
 // Add an  enum item to the parent enum. Assumes the parent enum exists.
-func (d *decoder) addEnumItem(item *rbxapi.EnumItem) {
+func (d *decoder) addEnumItem(item *EnumItem) {
 	if d.err != nil {
 		return
 	}
@@ -348,9 +337,53 @@ func (d *decoder) decodeItem() {
 	}
 }
 
+func setTagField(tags *Tags, tag string, field *bool) {
+	if tags.GetTag(tag) {
+		tags.UnsetTag(tag)
+		*field = true
+		return
+	}
+	*field = false
+}
+
+func setTagSecurity(tags *Tags, read, write *string) {
+	if read == nil && write == nil {
+		return
+	}
+	if read != nil {
+		var secTags = [...]string{
+			"LocalUserSecurity",
+			"PluginSecurity",
+			"RobloxPlaceSecurity",
+			"RobloxScriptSecurity",
+			"RobloxSecurity",
+			"WritePlayerSecurity",
+			"security1",
+		}
+		for _, tag := range secTags {
+			if tags.GetTag(tag) {
+				*read = tag
+				tags.UnsetTag(tag)
+				break
+			}
+		}
+	}
+	if write != nil {
+		const prefix = "ScriptWriteRestricted: ["
+		const suffix = "]"
+		for tag := range *tags {
+			if strings.HasPrefix(tag, prefix) && strings.HasSuffix(tag, suffix) {
+				*write = tag[len(prefix) : len(tag)-len(suffix)]
+				tags.UnsetTag(tag)
+				break
+			}
+		}
+	}
+}
+
 func (d *decoder) decodeClass() {
 	d.clearParent()
-	class := rbxapi.NewClass("")
+	var class Class
 	class.Name = d.expectChars(isClassName, "class name")
 	d.skipWhitespace()
 	if d.checkChar(':') {
@@ -358,124 +391,134 @@ func (d *decoder) decodeClass() {
 		class.Superclass = d.expectChars(isClassName, "superclass name")
 		d.skipWhitespace()
 	}
-	d.decodeTags(class)
-	d.addClass(class)
+	d.decodeTags(&class.Tags)
+	setTagField(&class.Tags, "notCreatable", &class.NotCreatable)
+	d.addClass(&class)
 }
 
 func (d *decoder) decodeProperty() {
-	member := rbxapi.NewProperty("", "")
+	var member Property
 	member.ValueType = d.expectChars(isType, "value type")
 	d.expectWhitespace()
-	member.MemberClass = d.expectChars(isClassName, "member class")
-	d.expectClass(member.MemberClass)
+	member.Class = d.expectChars(isClassName, "member class")
+	d.expectClass(member.Class)
 	d.skipWhitespace()
 	d.expectChar('.')
 	d.skipWhitespace()
-	member.MemberName = d.expectChars(isMemberName, "member name")
+	member.Name = d.expectChars(isMemberName, "member name")
 	d.skipWhitespace()
-	d.decodeTags(member)
-	d.addMember(member)
+	d.decodeTags(&member.Tags)
+	setTagField(&member.Tags, "hidden", &member.Hidden)
+	setTagField(&member.Tags, "readonly", &member.ReadOnly)
+	setTagField(&member.Tags, "writeonly", &member.WriteOnly)
+	setTagSecurity(&member.Tags, &member.ReadSecurity, &member.WriteSecurity)
+	d.addMember(&member)
 }
 
 func (d *decoder) decodeFunction() {
-	member := rbxapi.NewFunction("", "")
+	var member Function
 	member.ReturnType = d.expectChars(isType, "return type")
 	d.expectWhitespace()
-	member.MemberClass = d.expectChars(isClassName, "member class")
-	d.expectClass(member.MemberClass)
+	member.Class = d.expectChars(isClassName, "member class")
+	d.expectClass(member.Class)
 	d.skipWhitespace()
 	d.expectChar(':')
 	d.skipWhitespace()
-	member.MemberName = d.expectChars(isMemberName, "member name")
+	member.Name = d.expectChars(isMemberName, "member name")
 	d.skipWhitespace()
-	member.Arguments = d.decodeArguments(true)
+	member.Parameters = d.decodeParameters(true)
 	d.skipWhitespace()
-	d.decodeTags(member)
-	d.addMember(member)
+	d.decodeTags(&member.Tags)
+	setTagSecurity(&member.Tags, &member.Security, nil)
+	d.addMember(&member)
 }
 
 func (d *decoder) decodeYieldFunction() {
-	member := rbxapi.NewYieldFunction("", "")
+	var member YieldFunction
 	member.ReturnType = d.expectChars(isType, "return type")
 	d.expectWhitespace()
-	member.MemberClass = d.expectChars(isClassName, "member class")
-	d.expectClass(member.MemberClass)
+	member.Class = d.expectChars(isClassName, "member class")
+	d.expectClass(member.Class)
 	d.skipWhitespace()
 	d.expectChar(':')
 	d.skipWhitespace()
-	member.MemberName = d.expectChars(isMemberName, "member name")
+	member.Name = d.expectChars(isMemberName, "member name")
 	d.skipWhitespace()
-	member.Arguments = d.decodeArguments(true)
+	member.Parameters = d.decodeParameters(true)
 	d.skipWhitespace()
-	d.decodeTags(member)
-	d.addMember(member)
+	d.decodeTags(&member.Tags)
+	setTagSecurity(&member.Tags, &member.Security, nil)
+	d.addMember(&member)
 }
 
 func (d *decoder) decodeEvent() {
-	member := rbxapi.NewEvent("", "")
-	member.MemberClass = d.expectChars(isClassName, "member class")
-	d.expectClass(member.MemberClass)
+	var member Event
+	member.Class = d.expectChars(isClassName, "member class")
+	d.expectClass(member.Class)
 	d.expectChar('.')
-	member.MemberName = d.expectChars(isMemberName, "member name")
+	member.Name = d.expectChars(isMemberName, "member name")
 	d.skipWhitespace()
-	member.Arguments = d.decodeArguments(false)
+	member.Parameters = d.decodeParameters(false)
 	d.skipWhitespace()
-	d.decodeTags(member)
-	d.addMember(member)
+	d.decodeTags(&member.Tags)
+	setTagSecurity(&member.Tags, &member.Security, nil)
+	d.addMember(&member)
 }
 
 func (d *decoder) decodeCallback() {
-	member := rbxapi.NewCallback("", "")
+	var member Callback
 	member.ReturnType = d.expectChars(isType, "return type")
 	d.expectWhitespace()
-	member.MemberClass = d.expectChars(isClassName, "member class")
-	d.expectClass(member.MemberClass)
+	member.Class = d.expectChars(isClassName, "member class")
+	d.expectClass(member.Class)
 	d.skipWhitespace()
 	d.expectChar('.')
 	d.skipWhitespace()
-	member.MemberName = d.expectChars(isMemberName, "member name")
+	member.Name = d.expectChars(isMemberName, "member name")
 	d.skipWhitespace()
-	member.Arguments = d.decodeArguments(false)
+	member.Parameters = d.decodeParameters(false)
 	d.skipWhitespace()
-	d.decodeTags(member)
-	d.addMember(member)
+	d.decodeTags(&member.Tags)
+	setTagField(&member.Tags, "noyield", &member.NoYield)
+	setTagSecurity(&member.Tags, &member.Security, nil)
+	d.addMember(&member)
 }
 
-func (d *decoder) decodeArguments(canDefault bool) (args []rbxapi.Argument) {
+func (d *decoder) decodeParameters(canDefault bool) (params []Parameter) {
 	d.expectChar('(')
 	d.skipWhitespace()
 	if d.checkChar(')') {
-		return args
+		return params
 	}
 	for {
-		args = append(args, d.decodeArgument(canDefault))
+		params = append(params, d.decodeParameter(canDefault))
 		d.skipWhitespace()
 		if d.checkChar(')') {
 			break
 		} else if !d.checkChar(',') {
-			d.syntaxError("expected argument separator")
+			d.syntaxError("expected parameter separator")
 			return nil
 		}
 		d.skipWhitespace()
 	}
-	return args
+	return params
 }
 
-func (d *decoder) decodeArgument(canDefault bool) (arg rbxapi.Argument) {
-	arg.Type = d.expectChars(isType, "type")
+func (d *decoder) decodeParameter(canDefault bool) (param Parameter) {
+	param.Type = d.expectChars(isType, "type")
 	d.expectWhitespace()
-	arg.Name = d.expectChars(isArgName, "argument name")
+	param.Name = d.expectChars(isArgName, "argument name")
 	if !canDefault {
-		return arg
+		return param
 	}
 	d.skipWhitespace()
 	if !d.checkChar('=') {
-		return arg
+		return param
 	}
 	d.skipWhitespace()
 	s := d.decodeDefault()
-	arg.Default = &s
-	return arg
+	param.Default = &s
+	return param
 }
 
 // Decode default argument value. This includes any character that isn't ','
@@ -485,16 +528,17 @@ func (d *decoder) decodeDefault() string {
 }
 
 func (d *decoder) decodeEnum() {
-	enum := rbxapi.NewEnum("")
+	var enum Enum
 	enum.Name = d.expectChars(isEnumName, "enum name")
 	d.skipWhitespace()
-	d.decodeTags(enum)
-	d.addEnum(enum)
+	d.decodeTags(&enum.Tags)
+	d.addEnum(&enum)
 }
 
 func (d *decoder) decodeEnumItem() {
-	item := rbxapi.NewEnumItem("", "")
+	var item EnumItem
 	item.Enum = d.expectChars(isEnumName, "enum name")
+	d.expectEnum(item.Enum)
 	d.skipWhitespace()
 	d.expectChar('.')
 	d.skipWhitespace()
@@ -504,14 +548,14 @@ func (d *decoder) decodeEnumItem() {
 	d.skipWhitespace()
 	item.Value = d.expectInt()
 	d.skipWhitespace()
-	d.decodeTags(item)
-	d.addEnumItem(item)
+	d.decodeTags(&item.Tags)
+	d.addEnumItem(&item)
 }
 
-func (d *decoder) decodeTags(t rbxapi.Taggable) {
+func (d *decoder) decodeTags(tags *Tags) {
 	for d.checkChar('[') {
 		d.skipWhitespace()
-		t.SetTag(d.decodeTag())
+		tags.SetTag(d.decodeTag())
 		d.skipWhitespace()
 	}
 }
@@ -520,18 +564,18 @@ func (d *decoder) decodeTag() string {
 	return d.decodeNested('[', ']')
 }
 
-func Decode(r io.Reader) (api *rbxapi.API, err error) {
+func Decode(r io.Reader) (root *Root, err error) {
 	br, ok := r.(io.ByteReader)
 	if !ok {
 		br = bufio.NewReader(r)
 	}
 	d := decoder{
-		api:  rbxapi.NewAPI(),
+		root: &Root{},
 		r:    br,
 		next: make([]byte, 0, 9),
 		line: 1,
 	}
 	err = d.decode()
-	api = d.api
+	root = d.root
 	return
 }

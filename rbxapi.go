@@ -1,479 +1,161 @@
-// The rbxapi package is used to parse and handle information about the Roblox
-// Lua API.
+// The rbxapi package is used to represent information about the Roblox Lua
+// API.
 package rbxapi
 
-import (
-	"sort"
-)
+// Root represents of the top-level structure of an API.
+type Root interface {
+	// GetClasses returns a list of class descriptors present in the API.
+	GetClasses() []Class
 
-// Taggable is an API item that may have a number of tags attached to it.
-type Taggable interface {
-	// Tag returns whether a given tag is enabled.
-	Tag(tag string) (enabled bool)
-	// SetTag enables all of the given tags.
-	SetTag(tags ...string)
-	// UnsetTag disables all of the given tags.
-	UnsetTag(tags ...string)
-	// Tags returns a list of enabled tags.
-	Tags() (tags []string)
-	// TagCount returns the number of enabled tags.
-	TagCount() (n int)
+	// GetClass returns the first class descriptor of the given name, or nil
+	// if no class of the given name is present.
+	GetClass(name string) Class
+
+	// GetEnums returns a list of enum descriptors present in the API.
+	GetEnums() []Enum
+
+	// GetEnum returns the first enum descriptor of the given name, or nil if
+	// no enum of the given name is present.
+	GetEnum(name string) Enum
 }
 
-type taggable map[string]bool
+// Class represents a class descriptor.
+type Class interface {
+	// GetName returns the class name.
+	GetName() string
 
-func (t taggable) Tag(tag string) bool {
-	return t[tag]
-}
+	// GetSuperclass returns the class name of the superclass.
+	GetSuperclass() string
 
-func (t taggable) SetTag(tags ...string) {
-	for _, tag := range tags {
-		t[tag] = true
-	}
-}
+	// GetMembers returns a list of member descriptors belonging to the class.
+	GetMembers() []Member
 
-func (t taggable) UnsetTag(tags ...string) {
-	for _, tag := range tags {
-		delete(t, tag)
-	}
-}
+	// GetMember returns the first member descriptor of the given name, or nil
+	// if no member of the given name is present.
+	GetMember(name string) Member
 
-func (t taggable) Tags() []string {
-	a := make([]string, len(t))
-	i := 0
-	for tag := range t {
-		a[i] = tag
-		i++
-	}
-	sort.Strings(a)
-	return a
-}
-
-func (t taggable) TagCount() int {
-	return len(t)
-}
-
-// API is the top-level structure containing classes and enums.
-type API struct {
-	// Classes maps class names to classes.
-	Classes map[string]*Class
-	// Enums maps enum names to enums.
-	Enums map[string]*Enum
-}
-
-// NewAPI returns a new, initialized API object.
-func NewAPI() *API {
-	return &API{
-		Classes: make(map[string]*Class),
-		Enums:   make(map[string]*Enum),
-	}
-}
-
-// ClassTree is a node in a tree representing the class hierarchy of an API.
-// ClassTrees can be sorted by name with the sort package.
-type ClassTree struct {
-	// Name is the name of the class the node represents.
-	Name string
-	// Class is the Class that the node represents.
-	Class *Class
-	// Subclasses is a list containing each class that inherits from this
-	// class.
-	Subclasses []*ClassTree
-}
-
-func (t *ClassTree) Len() int {
-	return len(t.Subclasses)
-}
-func (t *ClassTree) Less(i, j int) bool {
-	return t.Subclasses[i].Name < t.Subclasses[j].Name
-}
-func (t *ClassTree) Swap(i, j int) {
-	t.Subclasses[i], t.Subclasses[j] = t.Subclasses[j], t.Subclasses[i]
-}
-
-// list populates a list of classes that will be sorted by hierarchy.
-func (t *ClassTree) list(l []*Class) []*Class {
-	l = append(l, t.Class)
-	for _, subt := range t.Subclasses {
-		l = subt.list(l)
-	}
-	return l
-}
-
-// TreeList receives a list of ClassTree objects, and returns a flat list of
-// the classes in the tree, ordered by the hierarchy of the tree.
-func TreeList(tree []*ClassTree) (list []*Class) {
-	for _, t := range tree {
-		list = t.list(list)
-	}
-	return list
-}
-
-// ClassTree returns a list of ClassTree nodes. The list contains root nodes
-// of the tree (classes that have no superclass). It also contains classes
-// whose superclass does not exist in the API.
-func (api *API) ClassTree() []*ClassTree {
-	nodes := make(map[string]*ClassTree)
-	for name, class := range api.Classes {
-		nodes[name] = &ClassTree{Name: name, Class: class}
-	}
-
-	root := &ClassTree{}
-	for name, class := range api.Classes {
-		tree := nodes[name]
-		if stree, ok := nodes[class.Superclass]; ok {
-			stree.Subclasses = append(stree.Subclasses, tree)
-		} else {
-			root.Subclasses = append(root.Subclasses, tree)
-		}
-	}
-
-	for _, node := range nodes {
-		sort.Sort(node)
-	}
-	sort.Sort(root)
-
-	return root.Subclasses
-}
-
-// SortClassesByName can be used with the sort package to sort a list of
-// classes by name.
-type SortClassesByName []*Class
-
-func (l SortClassesByName) Len() int           { return len(l) }
-func (l SortClassesByName) Less(i, j int) bool { return l[i].Name < l[j].Name }
-func (l SortClassesByName) Swap(i, j int)      { l[i], l[j] = l[j], l[i] }
-
-// ClassList returns the classes of the API in a list sorted by name.
-func (api *API) ClassList() []*Class {
-	list := make([]*Class, len(api.Classes))
-	i := 0
-	for _, class := range api.Classes {
-		list[i] = class
-		i++
-	}
-	sort.Sort(SortClassesByName(list))
-	return list
-}
-
-// SortEnumsByName can be used with the sort package to sort enums by name.
-type SortEnumsByName []*Enum
-
-func (l SortEnumsByName) Len() int           { return len(l) }
-func (l SortEnumsByName) Less(i, j int) bool { return l[i].Name < l[j].Name }
-func (l SortEnumsByName) Swap(i, j int)      { l[i], l[j] = l[j], l[i] }
-
-// EnumList returns the enums of the API in a list sorted by name.
-func (api *API) EnumList() []*Enum {
-	list := make([]*Enum, len(api.Enums))
-	i := 0
-	for _, enum := range api.Enums {
-		list[i] = enum
-		i++
-	}
-	sort.Sort(SortEnumsByName(list))
-	return list
-}
-
-type Class struct {
-	Name       string
-	Superclass string
-	Members    map[string]Member
 	Taggable
 }
 
-func NewClass(name string) *Class {
-	return &Class{
-		Name:     name,
-		Members:  make(map[string]Member),
-		Taggable: make(taggable),
-	}
-}
-
-func (class *Class) String() string {
-	return "Class " + class.Name
-}
-
-// SortMembersByName can be used with the sort package to sort a list of
-// members by name.
-type SortMembersByName []Member
-
-func (l SortMembersByName) Len() int           { return len(l) }
-func (l SortMembersByName) Less(i, j int) bool { return l[i].Name() < l[j].Name() }
-func (l SortMembersByName) Swap(i, j int)      { l[i], l[j] = l[j], l[i] }
-
-// SortMembersByType can be used with the sort package to sort a list of
-// members by member type, then by name.
-type SortMembersByType []Member
-
-// Sort in reverse so that anything else (0) is sorted to the end of the list.
-var memberTypeOrder = map[string]int{
-	"Property":      5,
-	"Function":      4,
-	"YieldFunction": 3,
-	"Event":         2,
-	"Callback":      1,
-}
-
-func (l SortMembersByType) Len() int {
-	return len(l)
-}
-func (l SortMembersByType) Less(i, j int) bool {
-	mi, mj := l[i], l[j]
-	oi := memberTypeOrder[mi.Type()]
-	oj := memberTypeOrder[mj.Type()]
-	if oi == oj {
-		return mi.Name() < mj.Name()
-	}
-	return oi > oj
-}
-func (l SortMembersByType) Swap(i, j int) {
-	l[i], l[j] = l[j], l[i]
-}
-
-// MemberList returns the members of the class as a list, sorted by name.
-func (class *Class) MemberList() []Member {
-	a := make([]Member, len(class.Members))
-	i := 0
-	for _, member := range class.Members {
-		a[i] = member
-		i++
-	}
-	sort.Sort(SortMembersByName(a))
-	return a
-}
-
-// Argument is a single argument of a Function, YieldFunction, Callback, or
-// Event.
-type Argument struct {
-	// Type is the value type of the argument.
-	Type string
-	// Name is a name given to the argument.
-	Name string
-	// Default is an optional string that indicates the default value of the
-	// argument. Only Functions and YieldFunctions may have a default value.
-	Default *string
-}
-
-func (arg Argument) String() string {
-	if arg.Default != nil {
-		return arg.Type + " " + arg.Name + " = " + *arg.Default
-	}
-	return arg.Type + " " + arg.Name
-}
-
-// Member is a single member of a Class.
+// Member represents a class member descriptor. A Member can be casted to a
+// more specific type, depending on the member type. These are Property,
+// Function, Event, and Callback.
 type Member interface {
-	// Type returns a string representation of the member type.
-	Type() string
-	// Name returns the name of the member.
-	Name() string
-	// Class returns the name of the class the member belongs to.
-	Class() string
-	// String returns a string representation of the member.
-	String() string
+	// GetMemberType returns the type of member.
+	GetMemberType() string
+
+	// GetName returns the name of the member.
+	GetName() string
+
 	Taggable
 }
 
-type Property struct {
-	MemberName  string
-	MemberClass string
-	ValueType   string
+// Property represents a class member of the Property member type.
+type Property interface {
+	Member
+
+	// GetSecurity returns the security context associated with the property's
+	// read and write access.
+	GetSecurity() (read, write string)
+
+	// GetValueType returns the type of value stored in the property.
+	GetValueType() Type
+}
+
+// Function represents a class member of the Function member type.
+type Function interface {
+	Member
+
+	// GetSecurity returns the security context of the member's access.
+	GetSecurity() string
+
+	// GetParameters returns the list of parameters describing the arguments
+	// passed to the function. Parameters may have default values.
+	GetParameters() []Parameter
+
+	// GetReturnType returns the type of value returned by the function.
+	GetReturnType() Type
+}
+
+// Event represents a class member of the Event member type.
+type Event interface {
+	Member
+
+	// GetSecurity returns the security context of the member's access.
+	GetSecurity() string
+
+	// GetParameters returns the list of parameters describing the arguments
+	// received from the event. Parameters will not have default values.
+	GetParameters() []Parameter
+}
+
+// Callback represents a class member of the Callback member type.
+type Callback interface {
+	Member
+
+	// GetSecurity returns the security context of the member's access.
+	GetSecurity() string
+
+	// GetParameters returns the list of parameters describing the arguments
+	// passed to the callback. Parameters will not have default values.
+	GetParameters() []Parameter
+
+	// GetReturnType returns the type of value that should be returned by the
+	// callback.
+	GetReturnType() Type
+}
+
+// Parameter represents a parameter of a function, event, or callback.
+type Parameter interface {
+	// GetType returns the type of the parameter value.
+	GetType() Type
+
+	// GetName returns a name describing the parameter.
+	GetName() string
+
+	// GetDefault returns a string representing the default value of the
+	// parameter, and whether a default value is present.
+	GetDefault() (value string, ok bool)
+}
+
+// Enum represents an enum descriptor.
+type Enum interface {
+	// GetName returns the name of the enum.
+	GetName() string
+
+	// GetItems returns a list of items of the enum.
+	GetItems() []EnumItem
+
+	// GetItem returns the first item of the given name, or nil if no item of
+	// the given name is present.
+	GetItem(name string) EnumItem
+
 	Taggable
 }
 
-func NewProperty(name, class string) *Property {
-	return &Property{
-		MemberName:  name,
-		MemberClass: class,
-		Taggable:    make(taggable),
-	}
-}
+// EnumItem represents an enum item descriptor.
+type EnumItem interface {
+	// GetName returns the name of the enum item.
+	GetName() string
 
-func (m *Property) Type() string {
-	return "Property"
-}
+	// GetValue returns the value of the enum item.
+	GetValue() int
 
-func (m *Property) Name() string {
-	return m.MemberName
-}
-
-func (m *Property) Class() string {
-	return m.MemberClass
-}
-
-func (m *Property) String() string {
-	return "Property " + m.MemberClass + "." + m.MemberName
-}
-
-type Function struct {
-	MemberName  string
-	MemberClass string
-	ReturnType  string
-	Arguments   []Argument
 	Taggable
 }
 
-func NewFunction(name, class string) *Function {
-	return &Function{
-		MemberName:  name,
-		MemberClass: class,
-		Taggable:    make(taggable),
-	}
+// Taggable indicates that a descriptor is capable of having tags.
+type Taggable interface {
+	// GetTag returns whether the given tag is present in the descriptor.
+	GetTag(tag string) bool
 }
 
-func (m *Function) Type() string {
-	return "Function"
-}
+// Type represents a value type.
+type Type interface {
+	// GetName returns the name of the type.
+	GetName() string
 
-func (m *Function) Name() string {
-	return m.MemberName
-}
-
-func (m *Function) Class() string {
-	return m.MemberClass
-}
-
-func (m *Function) String() string {
-	return "Function " + m.MemberClass + "." + m.MemberName
-}
-
-type YieldFunction struct {
-	MemberName  string
-	MemberClass string
-	ReturnType  string
-	Arguments   []Argument
-	Taggable
-}
-
-func NewYieldFunction(name, class string) *YieldFunction {
-	return &YieldFunction{
-		MemberName:  name,
-		MemberClass: class,
-		Taggable:    make(taggable),
-	}
-}
-
-func (m *YieldFunction) Type() string {
-	return "YieldFunction"
-}
-
-func (m *YieldFunction) Name() string {
-	return m.MemberName
-}
-
-func (m *YieldFunction) Class() string {
-	return m.MemberClass
-}
-
-func (m *YieldFunction) String() string {
-	return "YieldFunction " + m.MemberClass + "." + m.MemberName
-}
-
-type Event struct {
-	MemberName  string
-	MemberClass string
-	Arguments   []Argument
-	Taggable
-}
-
-func NewEvent(name, class string) *Event {
-	return &Event{
-		MemberName:  name,
-		MemberClass: class,
-		Taggable:    make(taggable),
-	}
-}
-
-func (m *Event) Type() string {
-	return "Event"
-}
-
-func (m *Event) Name() string {
-	return m.MemberName
-}
-
-func (m *Event) Class() string {
-	return m.MemberClass
-}
-
-func (m *Event) String() string {
-	return "Event " + m.MemberClass + "." + m.MemberName
-}
-
-type Callback struct {
-	MemberName  string
-	MemberClass string
-	ReturnType  string
-	Arguments   []Argument
-	Taggable
-}
-
-func NewCallback(name, class string) *Callback {
-	return &Callback{
-		MemberName:  name,
-		MemberClass: class,
-		Taggable:    make(taggable),
-	}
-}
-
-func (m *Callback) Type() string {
-	return "Callback"
-}
-
-func (m *Callback) Name() string {
-	return m.MemberName
-}
-
-func (m *Callback) Class() string {
-	return m.MemberClass
-}
-
-func (m *Callback) String() string {
-	return "Callback " + m.MemberClass + "." + m.MemberName
-}
-
-type Enum struct {
-	Name  string
-	Items []*EnumItem
-	Taggable
-}
-
-func NewEnum(name string) *Enum {
-	return &Enum{
-		Name:     name,
-		Taggable: make(taggable),
-	}
-}
-
-func (enum *Enum) Item(name string) *EnumItem {
-	for _, item := range enum.Items {
-		if item.Name == name {
-			return item
-		}
-	}
-	return nil
-}
-
-func (enum *Enum) String() string {
-	return "Enum " + enum.Name
-}
-
-type EnumItem struct {
-	Enum  string
-	Name  string
-	Value int
-	Taggable
-}
-
-func NewEnumItem(name, enum string) *EnumItem {
-	return &EnumItem{
-		Name:     name,
-		Enum:     enum,
-		Taggable: make(taggable),
-	}
-}
-
-func (item *EnumItem) String() string {
-	return "EnumItem " + item.Enum + "." + item.Name
+	// GetCategory returns the category of the type. This may be empty where a
+	// type category is inapplicable or unavailable.
+	GetCategory() string
 }
