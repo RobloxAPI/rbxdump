@@ -47,7 +47,4 @@ var (
 	isDefault = charCheck{nofix: true, isChar: func(b byte) bool {
 		return b != ',' && b != ')'
 	}}
-	isTag = charCheck{nofix: true, isChar: func(b byte) bool {
-		return b != ']'
-	}}
 )

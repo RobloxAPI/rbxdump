@@ -283,10 +283,28 @@ func (e *encoder) encodeTags(tags Tags) {
 		e.encodeTag(tag)
 	}
 }
+
+func isBalanced(s string, op, cl rune) bool {
+	n := 0
+	for _, c := range s {
+		switch c {
+		case op:
+			n++
+		case cl:
+			n--
+			if n < 0 {
+				return false
+			}
+		}
+	}
+	return n == 0
 }
 
 func (e *encoder) encodeTag(tag string) {
-	e.checkChars(isTag, false, tag, "Tag")
+	if !isBalanced(tag, '[', ']') {
+		e.setError("unbalanced tag brackets")
+		return
+	}
 	e.writeString(" [")
 	e.writeString(tag)
 	e.writeString("]")
