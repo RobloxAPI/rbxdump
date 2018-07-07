@@ -158,4 +158,7 @@ type Type interface {
 	// GetCategory returns the category of the type. This may be empty where a
 	// type category is inapplicable or unavailable.
 	GetCategory() string
+
+	// String returns a string representation of the entire type.
+	String() string
 }

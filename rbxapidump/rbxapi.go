@@ -293,3 +293,6 @@ func (typ Type) GetCategory() string {
 	}
 	return ""
 }
+func (typ Type) String() string {
+	return string(typ)
+}
