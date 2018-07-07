@@ -194,7 +194,6 @@ func (d *decoder) expectEnum(name string) {
 	if d.err != nil {
 		return
 	}
-	d.clearParent()
 	if d.enum == nil {
 		d.syntaxError("expected previously-declared enum")
 		return
