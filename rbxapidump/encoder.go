@@ -153,11 +153,10 @@ func (e *encoder) encodeMember(class *Class, member rbxapi.Member) {
 	e.checkChars(isName, true, member.GetName(), "Member.Name")
 	e.writeString(e.prefix)
 	e.writeString(e.indent)
-	e.writeString(member.GetMemberType())
-	e.writeString(" ")
 
 	switch member := member.(type) {
 	case *Property:
+		e.writeString("Property ")
 		e.checkMemberClass(member.Class, class.Name)
 		e.checkChars(isName, true, member.ValueType, "Property.ValueType")
 		e.writeString(member.ValueType)
@@ -167,6 +166,7 @@ func (e *encoder) encodeMember(class *Class, member rbxapi.Member) {
 		e.writeString(member.Name)
 		e.encodeTags(member.Tags)
 	case *Function:
+		e.writeString("Function ")
 		e.checkMemberClass(member.Class, class.Name)
 		e.checkChars(isName, true, member.ReturnType, "Function.ReturnType")
 		e.writeString(member.ReturnType)
@@ -177,6 +177,7 @@ func (e *encoder) encodeMember(class *Class, member rbxapi.Member) {
 		e.encodeParameters(member.Parameters, true)
 		e.encodeTags(member.Tags)
 	case *YieldFunction:
+		e.writeString("YieldFunction ")
 		e.checkMemberClass(member.Class, class.Name)
 		e.checkChars(isName, true, member.ReturnType, "YieldFunction.ReturnType")
 		e.writeString(member.ReturnType)
@@ -187,6 +188,7 @@ func (e *encoder) encodeMember(class *Class, member rbxapi.Member) {
 		e.encodeParameters(member.Parameters, true)
 		e.encodeTags(member.Tags)
 	case *Event:
+		e.writeString("Event ")
 		e.checkMemberClass(member.Class, class.Name)
 		e.writeString(member.Class)
 		e.writeString(".")
@@ -194,6 +196,7 @@ func (e *encoder) encodeMember(class *Class, member rbxapi.Member) {
 		e.encodeParameters(member.Parameters, false)
 		e.encodeTags(member.Tags)
 	case *Callback:
+		e.writeString("Callback ")
 		e.checkMemberClass(member.Class, class.Name)
 		e.checkChars(isName, true, member.ReturnType, "Callback.ReturnType")
 		e.writeString(member.ReturnType)
