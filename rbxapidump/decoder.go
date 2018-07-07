@@ -6,7 +6,6 @@ import (
 	"github.com/robloxapi/rbxapi"
 	"io"
 	"strconv"
-	"strings"
 )
 
 type SyntaxError struct {
@@ -337,50 +336,6 @@ func (d *decoder) decodeItem() {
 	}
 }
 
-func setTagField(tags *Tags, tag string, field *bool) {
-	if tags.GetTag(tag) {
-		tags.UnsetTag(tag)
-		*field = true
-		return
-	}
-	*field = false
-}
-
-func setTagSecurity(tags *Tags, read, write *string) {
-	if read == nil && write == nil {
-		return
-	}
-	if read != nil {
-		var secTags = [...]string{
-			"LocalUserSecurity",
-			"PluginSecurity",
-			"RobloxPlaceSecurity",
-			"RobloxScriptSecurity",
-			"RobloxSecurity",
-			"WritePlayerSecurity",
-			"security1",
-		}
-		for _, tag := range secTags {
-			if tags.GetTag(tag) {
-				*read = tag
-				tags.UnsetTag(tag)
-				break
-			}
-		}
-	}
-	if write != nil {
-		const prefix = "ScriptWriteRestricted: ["
-		const suffix = "]"
-		for tag := range *tags {
-			if strings.HasPrefix(tag, prefix) && strings.HasSuffix(tag, suffix) {
-				*write = tag[len(prefix) : len(tag)-len(suffix)]
-				tags.UnsetTag(tag)
-				break
-			}
-		}
-	}
-}
-
 func (d *decoder) decodeClass() {
 	d.clearParent()
 	var class Class
@@ -392,7 +347,6 @@ func (d *decoder) decodeClass() {
 		d.skipWhitespace()
 	}
 	d.decodeTags(&class.Tags)
-	setTagField(&class.Tags, "notCreatable", &class.NotCreatable)
 	d.addClass(&class)
 }
 
@@ -408,10 +362,6 @@ func (d *decoder) decodeProperty() {
 	member.Name = d.expectChars(isMemberName, "member name")
 	d.skipWhitespace()
 	d.decodeTags(&member.Tags)
-	setTagField(&member.Tags, "hidden", &member.Hidden)
-	setTagField(&member.Tags, "readonly", &member.ReadOnly)
-	setTagField(&member.Tags, "writeonly", &member.WriteOnly)
-	setTagSecurity(&member.Tags, &member.ReadSecurity, &member.WriteSecurity)
 	d.addMember(&member)
 }
 
@@ -429,7 +379,6 @@ func (d *decoder) decodeFunction() {
 	member.Parameters = d.decodeParameters(true)
 	d.skipWhitespace()
 	d.decodeTags(&member.Tags)
-	setTagSecurity(&member.Tags, &member.Security, nil)
 	d.addMember(&member)
 }
 
@@ -447,7 +396,6 @@ func (d *decoder) decodeYieldFunction() {
 	member.Parameters = d.decodeParameters(true)
 	d.skipWhitespace()
 	d.decodeTags(&member.Tags)
-	setTagSecurity(&member.Tags, &member.Security, nil)
 	d.addMember(&member)
 }
 
@@ -461,7 +409,6 @@ func (d *decoder) decodeEvent() {
 	member.Parameters = d.decodeParameters(false)
 	d.skipWhitespace()
 	d.decodeTags(&member.Tags)
-	setTagSecurity(&member.Tags, &member.Security, nil)
 	d.addMember(&member)
 }
 
@@ -479,8 +426,6 @@ func (d *decoder) decodeCallback() {
 	member.Parameters = d.decodeParameters(false)
 	d.skipWhitespace()
 	d.decodeTags(&member.Tags)
-	setTagField(&member.Tags, "noyield", &member.NoYield)
-	setTagSecurity(&member.Tags, &member.Security, nil)
 	d.addMember(&member)
 }
 

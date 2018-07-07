@@ -2,7 +2,6 @@ package rbxapidump
 
 import (
 	"github.com/robloxapi/rbxapi"
-	"sort"
 	"strings"
 )
 
@@ -46,10 +45,9 @@ func (root *Root) GetEnum(name string) rbxapi.Enum {
 }
 
 type Class struct {
-	Name         string
-	Superclass   string
-	Members      []rbxapi.Member
-	NotCreatable bool
+	Name       string
+	Superclass string
+	Members    []rbxapi.Member
 	Tags
 }
 
@@ -76,15 +74,19 @@ func (class *Class) GetMember(name string) rbxapi.Member {
 	return nil
 }
 
+func getSecurity(tags Tags) string {
+	for _, tag := range tags {
+		if strings.Contains(tag, "Security") || strings.Contains(tag, "security") {
+			return tag
+		}
+	}
+	return ""
+}
+
 type Property struct {
-	Name          string
-	Class         string
-	ValueType     string
-	Hidden        bool
-	ReadOnly      bool
-	WriteOnly     bool
-	ReadSecurity  string
-	WriteSecurity string
+	Name      string
+	Class     string
+	ValueType string
 	Tags
 }
 
@@ -92,7 +94,22 @@ func (member *Property) GetMemberType() string     { return "Property" }
 func (member *Property) GetName() string           { return member.Name }
 func (member *Property) GetValueType() rbxapi.Type { return Type(member.ValueType) }
 func (member *Property) GetSecurity() (read, write string) {
-	return member.ReadSecurity, member.WriteSecurity
+	const prefix = "ScriptWriteRestricted: ["
+	const suffix = "]"
+	for _, tag := range member.Tags {
+		if write == "" && strings.HasPrefix(tag, prefix) {
+			write = tag[len(prefix) : len(tag)-len(suffix)]
+			if read != "" {
+				break
+			}
+		} else if read == "" && (strings.Contains(tag, "Security") || strings.Contains(tag, "security")) {
+			read = tag
+			if write != "" {
+				break
+			}
+		}
+	}
+	return read, write
 }
 
 type Function struct {
@@ -100,14 +117,13 @@ type Function struct {
 	Class      string
 	ReturnType string
 	Parameters []Parameter
-	Security   string
 	Tags
 }
 
 func (member *Function) GetMemberType() string      { return "Function" }
 func (member *Function) GetName() string            { return member.Name }
 func (member *Function) GetReturnType() rbxapi.Type { return Type(member.ReturnType) }
-func (member *Function) GetSecurity() string        { return member.Security }
+func (member *Function) GetSecurity() string        { return getSecurity(member.Tags) }
 func (member *Function) GetParameters() []rbxapi.Parameter {
 	list := make([]rbxapi.Parameter, len(member.Parameters))
 	for i, param := range member.Parameters {
@@ -121,7 +137,7 @@ type YieldFunction Function
 func (member *YieldFunction) GetMemberType() string      { return "Function" }
 func (member *YieldFunction) GetName() string            { return member.Name }
 func (member *YieldFunction) GetReturnType() rbxapi.Type { return Type(member.ReturnType) }
-func (member *YieldFunction) GetSecurity() string        { return member.Security }
+func (member *YieldFunction) GetSecurity() string        { return getSecurity(member.Tags) }
 func (member *YieldFunction) GetParameters() []rbxapi.Parameter {
 	list := make([]rbxapi.Parameter, len(member.Parameters))
 	for i, param := range member.Parameters {
@@ -134,13 +150,12 @@ type Event struct {
 	Name       string
 	Class      string
 	Parameters []Parameter
-	Security   string
 	Tags
 }
 
 func (member *Event) GetMemberType() string { return "Event" }
 func (member *Event) GetName() string       { return member.Name }
-func (member *Event) GetSecurity() string   { return member.Security }
+func (member *Event) GetSecurity() string   { return getSecurity(member.Tags) }
 func (member *Event) GetParameters() []rbxapi.Parameter {
 	list := make([]rbxapi.Parameter, len(member.Parameters))
 	for i, param := range member.Parameters {
@@ -154,15 +169,13 @@ type Callback struct {
 	Class      string
 	ReturnType string
 	Parameters []Parameter
-	NoYield    bool
-	Security   string
 	Tags
 }
 
 func (member *Callback) GetMemberType() string      { return "Callback" }
 func (member *Callback) GetName() string            { return member.Name }
 func (member *Callback) GetReturnType() rbxapi.Type { return Type(member.ReturnType) }
-func (member *Callback) GetSecurity() string        { return member.Security }
+func (member *Callback) GetSecurity() string        { return getSecurity(member.Tags) }
 func (member *Callback) GetParameters() []rbxapi.Parameter {
 	list := make([]rbxapi.Parameter, len(member.Parameters))
 	for i, param := range member.Parameters {
@@ -220,35 +233,49 @@ type EnumItem struct {
 func (item *EnumItem) GetName() string { return item.Name }
 func (item *EnumItem) GetValue() int   { return item.Value }
 
-type Tags map[string]struct{}
+type Tags []string
 
 func (tags Tags) GetTag(tag string) bool {
-	_, ok := tags[tag]
-	return ok
+	for _, t := range tags {
+		if t == tag {
+			return true
+		}
+	}
+	return false
 }
-func (tags Tags) LenTags() int { return len(tags) }
+func (tags Tags) LenTags() int {
+	return len(tags)
+}
 func (tags *Tags) SetTag(tag ...string) {
-	if *tags == nil {
-		*tags = Tags{}
-	}
-	for _, t := range tag {
-		(*tags)[t] = struct{}{}
+	*tags = append(*tags, tag...)
+loop:
+	for i, n := 1, len(*tags); i < n; {
+		for j := 0; j < i; j++ {
+			if (*tags)[i] == (*tags)[j] {
+				*tags = append((*tags)[:i], (*tags)[i+1:]...)
+				n--
+				continue loop
+			}
+		}
+		i++
 	}
 }
-func (tags Tags) UnsetTag(tag ...string) {
-	if tags == nil {
-		return
-	}
-	for _, t := range tag {
-		delete(tags, t)
+func (tags *Tags) UnsetTag(tag ...string) {
+loop:
+	for i, n := 0, len(*tags); i < n; {
+		for j := 0; j < len(tag); j++ {
+			if (*tags)[i] == tag[j] {
+				*tags = append((*tags)[:i], (*tags)[i+1:]...)
+				n--
+				continue loop
+			}
+		}
+		i++
 	}
 }
 func (tags Tags) GetTags() []string {
 	list := make([]string, 0, len(tags))
-	for tag := range tags {
-		list = append(list, tag)
-	}
-	sort.Strings(list)
+	copy(list, tags)
 	return list
 }
 

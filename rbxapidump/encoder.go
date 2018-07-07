@@ -127,9 +127,6 @@ func (e *encoder) encodeClass(class *Class) {
 		e.writeString(class.Superclass)
 	}
 	e.encodeTags(class.Tags)
-	if class.NotCreatable {
-		e.encodeTag("notCreatable")
-	}
 	e.writeString(e.line)
 
 	for _, member := range class.Members {
@@ -152,12 +149,6 @@ func (e *encoder) checkMemberClass(memberClass, class string) bool {
 	return true
 }
 
-func (e *encoder) encodeTagField(field bool, tag string) {
-	if field {
-		e.encodeTag(tag)
-	}
-}
-
 func (e *encoder) encodeMember(class *Class, member rbxapi.Member) {
 	e.checkChars(isName, true, member.GetName(), "Member.Name")
 	e.writeString(e.prefix)
@@ -175,15 +166,6 @@ func (e *encoder) encodeMember(class *Class, member rbxapi.Member) {
 		e.writeString(".")
 		e.writeString(member.Name)
 		e.encodeTags(member.Tags)
-		e.encodeTagField(member.Hidden, "hidden")
-		e.encodeTagField(member.ReadOnly, "readonly")
-		e.encodeTagField(member.WriteOnly, "writeonly")
-		e.encodeTagField(member.ReadSecurity != "", member.ReadSecurity)
-		if member.WriteSecurity != "" {
-			e.writeString("ScriptWriteRestricted: [")
-			e.writeString(member.WriteSecurity)
-			e.writeString("]")
-		}
 	case *Function:
 		e.checkMemberClass(member.Class, class.Name)
 		e.checkChars(isName, true, member.ReturnType, "Function.ReturnType")
@@ -194,7 +176,6 @@ func (e *encoder) encodeMember(class *Class, member rbxapi.Member) {
 		e.writeString(member.Name)
 		e.encodeParameters(member.Parameters, true)
 		e.encodeTags(member.Tags)
-		e.encodeTagField(member.Security != "", member.Security)
 	case *YieldFunction:
 		e.checkMemberClass(member.Class, class.Name)
 		e.checkChars(isName, true, member.ReturnType, "YieldFunction.ReturnType")
@@ -205,7 +186,6 @@ func (e *encoder) encodeMember(class *Class, member rbxapi.Member) {
 		e.writeString(member.Name)
 		e.encodeParameters(member.Parameters, true)
 		e.encodeTags(member.Tags)
-		e.encodeTagField(member.Security != "", member.Security)
 	case *Event:
 		e.checkMemberClass(member.Class, class.Name)
 		e.writeString(member.Class)
@@ -213,7 +193,6 @@ func (e *encoder) encodeMember(class *Class, member rbxapi.Member) {
 		e.writeString(member.Name)
 		e.encodeParameters(member.Parameters, false)
 		e.encodeTags(member.Tags)
-		e.encodeTagField(member.Security != "", member.Security)
 	case *Callback:
 		e.checkMemberClass(member.Class, class.Name)
 		e.checkChars(isName, true, member.ReturnType, "Callback.ReturnType")
@@ -224,8 +203,6 @@ func (e *encoder) encodeMember(class *Class, member rbxapi.Member) {
 		e.writeString(member.Name)
 		e.encodeParameters(member.Parameters, false)
 		e.encodeTags(member.Tags)
-		e.encodeTagField(member.NoYield, "noyield")
-		e.encodeTagField(member.Security != "", member.Security)
 	default:
 		e.setError("unknown member type")
 	}
@@ -298,11 +275,11 @@ func (e *encoder) encodeEnumItem(enum *Enum, item *EnumItem) {
 	e.writeString(e.line)
 }
 
-func (e *encoder) encodeTags(t Tags) {
-	e.encodeTagField(t.GetTag("notbrowsable"), "notbrowsable")
-	e.encodeTagField(t.GetTag("deprecated"), "deprecated")
-	e.encodeTagField(t.GetTag("backend"), "backend")
-	e.encodeTagField(t.GetTag("preliminary"), "preliminary")
+func (e *encoder) encodeTags(tags Tags) {
+	for _, tag := range tags {
+		e.encodeTag(tag)
+	}
+}
 }
 
 func (e *encoder) encodeTag(tag string) {
