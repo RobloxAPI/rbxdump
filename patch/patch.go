@@ -12,6 +12,14 @@ type Differ interface {
 	Diff() []Action
 }
 
+// Patcher is implemented by any value that has a Patch method, which applies
+// a given list of Actions to a structure.
+//
+// Actions with irrelevant or incomplete information are ignored.
+type Patcher interface {
+	Patch([]Action)
+}
+
 // Action represents a single unit of difference between one API structure and
 // another.
 type Action interface {
