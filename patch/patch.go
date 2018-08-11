@@ -63,6 +63,9 @@ func (t Type) String() string {
 type Value interface {
 	// Equal returns whether the value is equal to another value.
 	Equal(Value) bool
+	// Set receives a pointer to a value and attempts to set it. Returns
+	// whether or not setting the value was successful.
+	Set(interface{}) bool
 	// String returns a string representation of the value.
 	String() string
 }

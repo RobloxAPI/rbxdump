@@ -105,3 +105,39 @@ func (v Value) Equal(w patch.Value) bool {
 	}
 	return false
 }
+
+func (v Value) Set(p interface{}) bool {
+	switch p := p.(type) {
+	case *bool:
+		if v, ok := v.Value.(bool); ok {
+			*p = v
+			return true
+		}
+	case *int:
+		if v, ok := v.Value.(int); ok {
+			*p = v
+			return true
+		}
+	case *string:
+		if v, ok := v.Value.(string); ok {
+			*p = v
+			return true
+		}
+	case *rbxapi.Type:
+		if v, ok := v.Value.(rbxapi.Type); ok {
+			*p = v
+			return true
+		}
+	case *[]string:
+		if v, ok := v.Value.([]string); ok {
+			*p = v
+			return true
+		}
+	case *[]rbxapi.Parameter:
+		if v, ok := v.Value.([]rbxapi.Parameter); ok {
+			*p = v
+			return true
+		}
+	}
+	return false
+}
