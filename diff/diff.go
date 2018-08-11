@@ -5,120 +5,7 @@ package diff
 import (
 	"github.com/robloxapi/rbxapi"
 	"github.com/robloxapi/rbxapi/patch"
-	"strconv"
-	"strings"
 )
-
-// Value implements a patch.Value by wrapping around one of the several types
-// that can appear in a rbxapi structure. The following types are implemented:
-//
-//     bool
-//     int
-//     string
-//     rbxapi.Type
-//     []string
-//     []rbxapi.Parameter
-type Value struct {
-	Value interface{}
-}
-
-// String implements the Value interface.
-func (v Value) String() string {
-	switch v := v.Value.(type) {
-	case bool:
-		if v {
-			return "true"
-		}
-		return "false"
-	case int:
-		return strconv.Itoa(v)
-	case string:
-		return v
-	case rbxapi.Type:
-		return v.String()
-	case []string:
-		return "[" + strings.Join(v, ", ") + "]"
-	case []rbxapi.Parameter:
-		ss := make([]string, len(v))
-		for i, param := range v {
-			ss[i] = param.GetType().String() + " " + param.GetName()
-			if def, ok := param.GetDefault(); ok {
-				ss[i] += " = " + def
-			}
-		}
-		return "(" + strings.Join(ss, ", ") + ")"
-	}
-	return ""
-}
-
-// Equal implements the Value interface.
-func (v Value) Equal(w patch.Value) bool {
-	switch w := w.(type) {
-	case Value:
-		switch v := v.Value.(type) {
-		case bool:
-			w, ok := w.Value.(bool)
-			if !ok {
-				return false
-			}
-			return v == w
-		case int:
-			w, ok := w.Value.(int)
-			if !ok {
-				return false
-			}
-			return v == w
-		case string:
-			w, ok := w.Value.(string)
-			if !ok {
-				return false
-			}
-			return v == w
-		case rbxapi.Type:
-			w, ok := w.Value.(rbxapi.Type)
-			if !ok {
-				return false
-			}
-			return v == w
-		case []string:
-			w, ok := w.Value.([]string)
-			if !ok {
-				return false
-			}
-			if len(w) != len(v) {
-				return false
-			}
-			for i, v := range v {
-				if w[i] != v {
-					return false
-				}
-			}
-			return true
-		case []rbxapi.Parameter:
-			w, ok := w.Value.([]rbxapi.Parameter)
-			if !ok {
-				return false
-			}
-			if len(w) != len(v) {
-				return false
-			}
-			for i, v := range v {
-				w := w[i]
-				vd, vk := v.GetDefault()
-				wd, wk := w.GetDefault()
-				switch {
-				case v.GetType() != w.GetType(),
-					v.GetName() != w.GetName(),
-					vk != wk,
-					!vk && !wk && vd != wd:
-					return false
-				}
-			}
-			return true
-		}
-	}
-	return false
-}
 
 // Diff is a patch.Differ that finds differences between two rbxapi.Root
 // values.
@@ -135,14 +22,14 @@ func (d *Diff) Diff() (actions []patch.Action) {
 			names[p.GetName()] = struct{}{}
 			n := d.Next.GetClass(p.GetName())
 			if n == nil {
-				actions = append(actions, &patch.Class{Type: patch.Remove, Class: p})
+				actions = append(actions, &ClassAction{Type: patch.Remove, Class: p})
 				continue
 			}
 			actions = append(actions, (&DiffClass{p, n}).Diff()...)
 		}
 		for _, n := range d.Next.GetClasses() {
 			if _, ok := names[n.GetName()]; !ok {
-				actions = append(actions, &patch.Class{Type: patch.Add, Class: n})
+				actions = append(actions, &ClassAction{Type: patch.Add, Class: n})
 			}
 		}
 	}
@@ -153,14 +40,14 @@ func (d *Diff) Diff() (actions []patch.Action) {
 			names[p.GetName()] = struct{}{}
 			n := d.Next.GetEnum(p.GetName())
 			if n == nil {
-				actions = append(actions, &patch.Enum{Type: patch.Remove, Enum: p})
+				actions = append(actions, &EnumAction{Type: patch.Remove, Enum: p})
 				continue
 			}
 			actions = append(actions, (&DiffEnum{p, n}).Diff()...)
 		}
 		for _, n := range d.Next.GetEnums() {
 			if _, ok := names[n.GetName()]; !ok {
-				actions = append(actions, &patch.Enum{Type: patch.Add, Enum: n})
+				actions = append(actions, &EnumAction{Type: patch.Add, Enum: n})
 			}
 		}
 	}
@@ -176,13 +63,13 @@ type DiffClass struct {
 // Diff implements the patch.Differ interface.
 func (d *DiffClass) Diff() (actions []patch.Action) {
 	if d.Prev.GetName() != d.Next.GetName() {
-		actions = append(actions, &patch.Class{patch.Change, d.Prev, "Name", Value{d.Prev.GetName()}, Value{d.Next.GetName()}})
+		actions = append(actions, &ClassAction{patch.Change, d.Prev, "Name", Value{d.Prev.GetName()}, Value{d.Next.GetName()}})
 	}
 	if d.Prev.GetSuperclass() != d.Next.GetSuperclass() {
-		actions = append(actions, &patch.Class{patch.Change, d.Prev, "Superclass", Value{d.Prev.GetSuperclass()}, Value{d.Next.GetSuperclass()}})
+		actions = append(actions, &ClassAction{patch.Change, d.Prev, "Superclass", Value{d.Prev.GetSuperclass()}, Value{d.Next.GetSuperclass()}})
 	}
 	if pv, nv := (Value{d.Prev.GetTags()}), (Value{d.Next.GetTags()}); !pv.Equal(nv) {
-		actions = append(actions, &patch.Class{patch.Change, d.Prev, "Tags", pv, nv})
+		actions = append(actions, &ClassAction{patch.Change, d.Prev, "Tags", pv, nv})
 	}
 	{
 		members := d.Prev.GetMembers()
@@ -191,7 +78,7 @@ func (d *DiffClass) Diff() (actions []patch.Action) {
 			names[p.GetName()] = struct{}{}
 			n := d.Next.GetMember(p.GetName())
 			if n == nil {
-				actions = append(actions, &patch.Member{Type: patch.Remove, Class: d.Prev, Member: p})
+				actions = append(actions, &MemberAction{Type: patch.Remove, Class: d.Prev, Member: p})
 				continue
 			}
 			switch p := p.(type) {
@@ -216,12 +103,12 @@ func (d *DiffClass) Diff() (actions []patch.Action) {
 					continue
 				}
 			}
-			actions = append(actions, &patch.Member{Type: patch.Remove, Class: d.Prev, Member: p})
-			actions = append(actions, &patch.Member{Type: patch.Add, Class: d.Prev, Member: p})
+			actions = append(actions, &MemberAction{Type: patch.Remove, Class: d.Prev, Member: p})
+			actions = append(actions, &MemberAction{Type: patch.Add, Class: d.Prev, Member: p})
 		}
 		for _, n := range d.Next.GetMembers() {
 			if _, ok := names[n.GetName()]; !ok {
-				actions = append(actions, &patch.Member{Type: patch.Add, Class: d.Prev, Member: n})
+				actions = append(actions, &MemberAction{Type: patch.Add, Class: d.Prev, Member: n})
 			}
 		}
 	}
@@ -240,21 +127,21 @@ type DiffProperty struct {
 // Diff implements the patch.Differ interface.
 func (d *DiffProperty) Diff() (actions []patch.Action) {
 	if d.Prev.GetName() != d.Next.GetName() {
-		actions = append(actions, &patch.Member{patch.Change, d.Class, d.Prev, "Name", Value{d.Prev.GetName()}, Value{d.Next.GetName()}})
+		actions = append(actions, &MemberAction{patch.Change, d.Class, d.Prev, "Name", Value{d.Prev.GetName()}, Value{d.Next.GetName()}})
 	}
 	if d.Prev.GetValueType() != d.Next.GetValueType() {
-		actions = append(actions, &patch.Member{patch.Change, d.Class, d.Prev, "ValueType", Value{d.Prev.GetValueType()}, Value{d.Next.GetValueType()}})
+		actions = append(actions, &MemberAction{patch.Change, d.Class, d.Prev, "ValueType", Value{d.Prev.GetValueType()}, Value{d.Next.GetValueType()}})
 	}
 	pr, pw := d.Prev.GetSecurity()
 	nr, nw := d.Next.GetSecurity()
 	if pr != nr {
-		actions = append(actions, &patch.Member{patch.Change, d.Class, d.Prev, "ReadSecurity", Value{pr}, Value{nr}})
+		actions = append(actions, &MemberAction{patch.Change, d.Class, d.Prev, "ReadSecurity", Value{pr}, Value{nr}})
 	}
 	if pw != nw {
-		actions = append(actions, &patch.Member{patch.Change, d.Class, d.Prev, "WriteSecurity", Value{pw}, Value{nw}})
+		actions = append(actions, &MemberAction{patch.Change, d.Class, d.Prev, "WriteSecurity", Value{pw}, Value{nw}})
 	}
 	if pv, nv := (Value{d.Prev.GetTags()}), (Value{d.Next.GetTags()}); !pv.Equal(nv) {
-		actions = append(actions, &patch.Member{patch.Change, d.Class, d.Prev, "Tags", pv, nv})
+		actions = append(actions, &MemberAction{patch.Change, d.Class, d.Prev, "Tags", pv, nv})
 	}
 	return
 }
@@ -271,19 +158,19 @@ type DiffFunction struct {
 // Diff implements the patch.Differ interface.
 func (d *DiffFunction) Diff() (actions []patch.Action) {
 	if d.Prev.GetName() != d.Next.GetName() {
-		actions = append(actions, &patch.Member{patch.Change, d.Class, d.Prev, "Name", Value{d.Prev.GetName()}, Value{d.Next.GetName()}})
+		actions = append(actions, &MemberAction{patch.Change, d.Class, d.Prev, "Name", Value{d.Prev.GetName()}, Value{d.Next.GetName()}})
 	}
 	if pv, nv := (Value{d.Prev.GetParameters()}), (Value{d.Next.GetParameters()}); !pv.Equal(nv) {
-		actions = append(actions, &patch.Member{patch.Change, d.Class, d.Prev, "Parameters", pv, nv})
+		actions = append(actions, &MemberAction{patch.Change, d.Class, d.Prev, "Parameters", pv, nv})
 	}
 	if d.Prev.GetReturnType() != d.Next.GetReturnType() {
-		actions = append(actions, &patch.Member{patch.Change, d.Class, d.Prev, "ReturnType", Value{d.Prev.GetReturnType()}, Value{d.Next.GetReturnType()}})
+		actions = append(actions, &MemberAction{patch.Change, d.Class, d.Prev, "ReturnType", Value{d.Prev.GetReturnType()}, Value{d.Next.GetReturnType()}})
 	}
 	if d.Prev.GetSecurity() != d.Next.GetSecurity() {
-		actions = append(actions, &patch.Member{patch.Change, d.Class, d.Prev, "Security", Value{d.Prev.GetSecurity()}, Value{d.Next.GetSecurity()}})
+		actions = append(actions, &MemberAction{patch.Change, d.Class, d.Prev, "Security", Value{d.Prev.GetSecurity()}, Value{d.Next.GetSecurity()}})
 	}
 	if pv, nv := (Value{d.Prev.GetTags()}), (Value{d.Next.GetTags()}); !pv.Equal(nv) {
-		actions = append(actions, &patch.Member{patch.Change, d.Class, d.Prev, "Tags", pv, nv})
+		actions = append(actions, &MemberAction{patch.Change, d.Class, d.Prev, "Tags", pv, nv})
 	}
 	return
 }
@@ -300,16 +187,16 @@ type DiffEvent struct {
 // Diff implements the patch.Differ interface.
 func (d *DiffEvent) Diff() (actions []patch.Action) {
 	if d.Prev.GetName() != d.Next.GetName() {
-		actions = append(actions, &patch.Member{patch.Change, d.Class, d.Prev, "Name", Value{d.Prev.GetName()}, Value{d.Next.GetName()}})
+		actions = append(actions, &MemberAction{patch.Change, d.Class, d.Prev, "Name", Value{d.Prev.GetName()}, Value{d.Next.GetName()}})
 	}
 	if pv, nv := (Value{d.Prev.GetParameters()}), (Value{d.Next.GetParameters()}); !pv.Equal(nv) {
-		actions = append(actions, &patch.Member{patch.Change, d.Class, d.Prev, "Parameters", pv, nv})
+		actions = append(actions, &MemberAction{patch.Change, d.Class, d.Prev, "Parameters", pv, nv})
 	}
 	if d.Prev.GetSecurity() != d.Next.GetSecurity() {
-		actions = append(actions, &patch.Member{patch.Change, d.Class, d.Prev, "Security", Value{d.Prev.GetSecurity()}, Value{d.Next.GetSecurity()}})
+		actions = append(actions, &MemberAction{patch.Change, d.Class, d.Prev, "Security", Value{d.Prev.GetSecurity()}, Value{d.Next.GetSecurity()}})
 	}
 	if pv, nv := (Value{d.Prev.GetTags()}), (Value{d.Next.GetTags()}); !pv.Equal(nv) {
-		actions = append(actions, &patch.Member{patch.Change, d.Class, d.Prev, "Tags", pv, nv})
+		actions = append(actions, &MemberAction{patch.Change, d.Class, d.Prev, "Tags", pv, nv})
 	}
 	return
 }
@@ -326,19 +213,19 @@ type DiffCallback struct {
 // Diff implements the patch.Differ interface.
 func (d *DiffCallback) Diff() (actions []patch.Action) {
 	if d.Prev.GetName() != d.Next.GetName() {
-		actions = append(actions, &patch.Member{patch.Change, d.Class, d.Prev, "Name", Value{d.Prev.GetName()}, Value{d.Next.GetName()}})
+		actions = append(actions, &MemberAction{patch.Change, d.Class, d.Prev, "Name", Value{d.Prev.GetName()}, Value{d.Next.GetName()}})
 	}
 	if pv, nv := (Value{d.Prev.GetParameters()}), (Value{d.Next.GetParameters()}); !pv.Equal(nv) {
-		actions = append(actions, &patch.Member{patch.Change, d.Class, d.Prev, "Parameters", pv, nv})
+		actions = append(actions, &MemberAction{patch.Change, d.Class, d.Prev, "Parameters", pv, nv})
 	}
 	if d.Prev.GetReturnType() != d.Next.GetReturnType() {
-		actions = append(actions, &patch.Member{patch.Change, d.Class, d.Prev, "ReturnType", Value{d.Prev.GetReturnType()}, Value{d.Next.GetReturnType()}})
+		actions = append(actions, &MemberAction{patch.Change, d.Class, d.Prev, "ReturnType", Value{d.Prev.GetReturnType()}, Value{d.Next.GetReturnType()}})
 	}
 	if d.Prev.GetSecurity() != d.Next.GetSecurity() {
-		actions = append(actions, &patch.Member{patch.Change, d.Class, d.Prev, "Security", Value{d.Prev.GetSecurity()}, Value{d.Next.GetSecurity()}})
+		actions = append(actions, &MemberAction{patch.Change, d.Class, d.Prev, "Security", Value{d.Prev.GetSecurity()}, Value{d.Next.GetSecurity()}})
 	}
 	if pv, nv := (Value{d.Prev.GetTags()}), (Value{d.Next.GetTags()}); !pv.Equal(nv) {
-		actions = append(actions, &patch.Member{patch.Change, d.Class, d.Prev, "Tags", pv, nv})
+		actions = append(actions, &MemberAction{patch.Change, d.Class, d.Prev, "Tags", pv, nv})
 	}
 	return
 }
@@ -352,10 +239,10 @@ type DiffEnum struct {
 // Diff implements the patch.Differ interface.
 func (d *DiffEnum) Diff() (actions []patch.Action) {
 	if d.Prev.GetName() != d.Next.GetName() {
-		actions = append(actions, &patch.Enum{patch.Change, d.Prev, "Name", Value{d.Prev.GetName()}, Value{d.Next.GetName()}})
+		actions = append(actions, &EnumAction{patch.Change, d.Prev, "Name", Value{d.Prev.GetName()}, Value{d.Next.GetName()}})
 	}
 	if pv, nv := (Value{d.Prev.GetTags()}), (Value{d.Next.GetTags()}); !pv.Equal(nv) {
-		actions = append(actions, &patch.Enum{patch.Change, d.Prev, "Tags", pv, nv})
+		actions = append(actions, &EnumAction{patch.Change, d.Prev, "Tags", pv, nv})
 	}
 	{
 		items := d.Prev.GetItems()
@@ -364,14 +251,14 @@ func (d *DiffEnum) Diff() (actions []patch.Action) {
 			names[p.GetName()] = struct{}{}
 			n := d.Next.GetItem(p.GetName())
 			if n == nil {
-				actions = append(actions, &patch.EnumItem{Type: patch.Remove, Enum: d.Prev, Item: p})
+				actions = append(actions, &EnumItemAction{Type: patch.Remove, Enum: d.Prev, Item: p})
 				continue
 			}
 			actions = append(actions, (&DiffEnumItem{d.Prev, p, n}).Diff()...)
 		}
 		for _, n := range d.Next.GetItems() {
 			if _, ok := names[n.GetName()]; !ok {
-				actions = append(actions, &patch.EnumItem{Type: patch.Add, Enum: d.Prev, Item: n})
+				actions = append(actions, &EnumItemAction{Type: patch.Add, Enum: d.Prev, Item: n})
 			}
 		}
 	}
@@ -390,13 +277,13 @@ type DiffEnumItem struct {
 // Diff implements the patch.Differ interface.
 func (d *DiffEnumItem) Diff() (actions []patch.Action) {
 	if d.Prev.GetName() != d.Next.GetName() {
-		actions = append(actions, &patch.EnumItem{patch.Change, d.Enum, d.Prev, "Name", Value{d.Prev.GetName()}, Value{d.Next.GetName()}})
+		actions = append(actions, &EnumItemAction{patch.Change, d.Enum, d.Prev, "Name", Value{d.Prev.GetName()}, Value{d.Next.GetName()}})
 	}
 	if d.Prev.GetValue() != d.Next.GetValue() {
-		actions = append(actions, &patch.EnumItem{patch.Change, d.Enum, d.Prev, "Value", Value{d.Prev.GetValue()}, Value{d.Next.GetValue()}})
+		actions = append(actions, &EnumItemAction{patch.Change, d.Enum, d.Prev, "Value", Value{d.Prev.GetValue()}, Value{d.Next.GetValue()}})
 	}
 	if pv, nv := (Value{d.Prev.GetTags()}), (Value{d.Next.GetTags()}); !pv.Equal(nv) {
-		actions = append(actions, &patch.EnumItem{patch.Change, d.Enum, d.Prev, "Tags", pv, nv})
+		actions = append(actions, &EnumItemAction{patch.Change, d.Enum, d.Prev, "Tags", pv, nv})
 	}
 	return
 }
