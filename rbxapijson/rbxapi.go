@@ -1,3 +1,5 @@
+// The rbxapijson package implements a codec for the Roblox API dump in JSON
+// format.
 package rbxapijson
 
 import (

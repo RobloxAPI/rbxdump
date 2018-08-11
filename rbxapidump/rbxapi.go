@@ -1,3 +1,4 @@
+// The rbxapidump package implements a codec for the Roblox API dump format.
 package rbxapidump
 
 import (
