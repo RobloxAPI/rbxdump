@@ -260,4 +260,9 @@ type Type struct {
 
 func (typ Type) GetName() string     { return typ.Name }
 func (typ Type) GetCategory() string { return typ.Category }
-func (typ Type) String() string      { return typ.Category + ":" + typ.Name }
+func (typ Type) String() string {
+	if typ.Category == "" {
+		return typ.Name
+	}
+	return typ.Category + ":" + typ.Name
+}
