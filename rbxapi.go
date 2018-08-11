@@ -148,6 +148,9 @@ type EnumItem interface {
 type Taggable interface {
 	// GetTag returns whether the given tag is present in the descriptor.
 	GetTag(tag string) bool
+
+	// GetTags returns a list of all tags present in the descriptor.
+	GetTags() []string
 }
 
 // Type represents a value type.
