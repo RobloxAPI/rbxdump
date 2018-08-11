@@ -55,64 +55,52 @@ func (v Value) Equal(w patch.Value) bool {
 	case Value:
 		switch v := v.Value.(type) {
 		case bool:
-			w, ok := w.Value.(bool)
-			if !ok {
-				return false
+			if w, ok := w.Value.(bool); ok {
+				return v == w
 			}
-			return v == w
 		case int:
-			w, ok := w.Value.(int)
-			if !ok {
-				return false
+			if w, ok := w.Value.(int); ok {
+				return v == w
 			}
-			return v == w
 		case string:
-			w, ok := w.Value.(string)
-			if !ok {
-				return false
+			if w, ok := w.Value.(string); ok {
+				return v == w
 			}
-			return v == w
 		case rbxapi.Type:
-			w, ok := w.Value.(rbxapi.Type)
-			if !ok {
-				return false
+			if w, ok := w.Value.(rbxapi.Type); ok {
+				return v == w
 			}
-			return v == w
 		case []string:
-			w, ok := w.Value.([]string)
-			if !ok {
-				return false
-			}
-			if len(w) != len(v) {
-				return false
-			}
-			for i, v := range v {
-				if w[i] != v {
+			if w, ok := w.Value.([]string); ok {
+				if len(w) != len(v) {
 					return false
 				}
+				for i, v := range v {
+					if w[i] != v {
+						return false
+					}
+				}
+				return true
 			}
-			return true
 		case []rbxapi.Parameter:
-			w, ok := w.Value.([]rbxapi.Parameter)
-			if !ok {
-				return false
-			}
-			if len(w) != len(v) {
-				return false
-			}
-			for i, v := range v {
-				w := w[i]
-				vd, vk := v.GetDefault()
-				wd, wk := w.GetDefault()
-				switch {
-				case v.GetType() != w.GetType(),
-					v.GetName() != w.GetName(),
-					vk != wk,
-					!vk && !wk && vd != wd:
+			if w, ok := w.Value.([]rbxapi.Parameter); ok {
+				if len(w) != len(v) {
 					return false
 				}
+				for i, v := range v {
+					w := w[i]
+					vd, vk := v.GetDefault()
+					wd, wk := w.GetDefault()
+					switch {
+					case v.GetType() != w.GetType(),
+						v.GetName() != w.GetName(),
+						vk != wk,
+						!vk && !wk && vd != wd:
+						return false
+					}
+				}
+				return true
 			}
-			return true
 		}
 	}
 	return false
