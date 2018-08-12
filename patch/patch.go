@@ -49,10 +49,10 @@ type Action interface {
 	GetField() string
 	// GetPrev returns the old value of the field being changed, when the
 	// action is a Change type. Must return nil otherwise.
-	GetPrev() Value
+	GetPrev() interface{}
 	// GetNext returns the new value of the field being changed, when the
 	// action is a Change type. Must return nil otherwise.
-	GetNext() Value
+	GetNext() interface{}
 	// String returns a string representation of the action, which is
 	// implementation-dependent.
 	String() string
@@ -78,17 +78,6 @@ func (t Type) String() string {
 		return "Add"
 	}
 	return ""
-}
-
-// Value represents a comparable value.
-type Value interface {
-	// Equal returns whether the value is equal to another value.
-	Equal(Value) bool
-	// Set receives a pointer to a value and attempts to set it. Returns
-	// whether or not setting the value was successful.
-	Set(interface{}) bool
-	// String returns a string representation of the value.
-	String() string
 }
 
 // Class represents an Action that applies to a rbxapi.Class.
