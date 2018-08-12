@@ -88,13 +88,13 @@ func getSecurity(tags Tags) string {
 type Property struct {
 	Name      string
 	Class     string
-	ValueType string
+	ValueType Type
 	Tags
 }
 
 func (member *Property) GetMemberType() string     { return "Property" }
 func (member *Property) GetName() string           { return member.Name }
-func (member *Property) GetValueType() rbxapi.Type { return Type(member.ValueType) }
+func (member *Property) GetValueType() rbxapi.Type { return member.ValueType }
 func (member *Property) GetSecurity() (read, write string) {
 	const prefix = "ScriptWriteRestricted: ["
 	const suffix = "]"
@@ -117,14 +117,14 @@ func (member *Property) GetSecurity() (read, write string) {
 type Function struct {
 	Name       string
 	Class      string
-	ReturnType string
+	ReturnType Type
 	Parameters []Parameter
 	Tags
 }
 
 func (member *Function) GetMemberType() string      { return "Function" }
 func (member *Function) GetName() string            { return member.Name }
-func (member *Function) GetReturnType() rbxapi.Type { return Type(member.ReturnType) }
+func (member *Function) GetReturnType() rbxapi.Type { return member.ReturnType }
 func (member *Function) GetSecurity() string        { return getSecurity(member.Tags) }
 func (member *Function) GetParameters() []rbxapi.Parameter {
 	list := make([]rbxapi.Parameter, len(member.Parameters))
@@ -138,7 +138,7 @@ type YieldFunction Function
 
 func (member *YieldFunction) GetMemberType() string      { return "Function" }
 func (member *YieldFunction) GetName() string            { return member.Name }
-func (member *YieldFunction) GetReturnType() rbxapi.Type { return Type(member.ReturnType) }
+func (member *YieldFunction) GetReturnType() rbxapi.Type { return member.ReturnType }
 func (member *YieldFunction) GetSecurity() string        { return getSecurity(member.Tags) }
 func (member *YieldFunction) GetParameters() []rbxapi.Parameter {
 	list := make([]rbxapi.Parameter, len(member.Parameters))
@@ -169,14 +169,14 @@ func (member *Event) GetParameters() []rbxapi.Parameter {
 type Callback struct {
 	Name       string
 	Class      string
-	ReturnType string
+	ReturnType Type
 	Parameters []Parameter
 	Tags
 }
 
 func (member *Callback) GetMemberType() string      { return "Callback" }
 func (member *Callback) GetName() string            { return member.Name }
-func (member *Callback) GetReturnType() rbxapi.Type { return Type(member.ReturnType) }
+func (member *Callback) GetReturnType() rbxapi.Type { return member.ReturnType }
 func (member *Callback) GetSecurity() string        { return getSecurity(member.Tags) }
 func (member *Callback) GetParameters() []rbxapi.Parameter {
 	list := make([]rbxapi.Parameter, len(member.Parameters))
@@ -188,12 +188,12 @@ func (member *Callback) GetParameters() []rbxapi.Parameter {
 }
 
 type Parameter struct {
-	Type    string
+	Type    Type
 	Name    string
 	Default *string
 }
 
-func (param Parameter) GetType() rbxapi.Type { return Type(param.Type) }
+func (param Parameter) GetType() rbxapi.Type { return param.Type }
 func (param Parameter) GetName() string      { return param.Name }
 func (param Parameter) GetDefault() (value string, ok bool) {
 	if param.Default != nil {
@@ -297,4 +297,11 @@ func (typ Type) GetCategory() string {
 }
 func (typ Type) String() string {
 	return string(typ)
+}
+func (typ *Type) SetFromType(t rbxapi.Type) {
+	if cat := t.GetCategory(); cat == "" {
+		*typ = Type(t.GetName())
+	} else {
+		*typ = Type(cat + ":" + t.GetName())
+	}
 }

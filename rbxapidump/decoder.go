@@ -351,7 +351,7 @@ func (d *decoder) decodeClass() {
 
 func (d *decoder) decodeProperty() {
 	var member Property
-	member.ValueType = d.expectChars(isType, "value type")
+	member.ValueType = Type(d.expectChars(isType, "value type"))
 	d.expectWhitespace()
 	member.Class = d.expectChars(isClassName, "member class")
 	d.expectClass(member.Class)
@@ -366,7 +366,7 @@ func (d *decoder) decodeProperty() {
 
 func (d *decoder) decodeFunction() {
 	var member Function
-	member.ReturnType = d.expectChars(isType, "return type")
+	member.ReturnType = Type(d.expectChars(isType, "return type"))
 	d.expectWhitespace()
 	member.Class = d.expectChars(isClassName, "member class")
 	d.expectClass(member.Class)
@@ -383,7 +383,7 @@ func (d *decoder) decodeFunction() {
 
 func (d *decoder) decodeYieldFunction() {
 	var member YieldFunction
-	member.ReturnType = d.expectChars(isType, "return type")
+	member.ReturnType = Type(d.expectChars(isType, "return type"))
 	d.expectWhitespace()
 	member.Class = d.expectChars(isClassName, "member class")
 	d.expectClass(member.Class)
@@ -413,7 +413,7 @@ func (d *decoder) decodeEvent() {
 
 func (d *decoder) decodeCallback() {
 	var member Callback
-	member.ReturnType = d.expectChars(isType, "return type")
+	member.ReturnType = Type(d.expectChars(isType, "return type"))
 	d.expectWhitespace()
 	member.Class = d.expectChars(isClassName, "member class")
 	d.expectClass(member.Class)
@@ -449,7 +449,7 @@ func (d *decoder) decodeParameters(canDefault bool) (params []Parameter) {
 }
 
 func (d *decoder) decodeParameter(canDefault bool) (param Parameter) {
-	param.Type = d.expectChars(isType, "type")
+	param.Type = Type(d.expectChars(isType, "type"))
 	d.expectWhitespace()
 	param.Name = d.expectChars(isArgName, "argument name")
 	if !canDefault {

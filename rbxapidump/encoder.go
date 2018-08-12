@@ -158,8 +158,8 @@ func (e *encoder) encodeMember(class *Class, member rbxapi.Member) {
 	case *Property:
 		e.writeString("Property ")
 		e.checkMemberClass(member.Class, class.Name)
-		e.checkChars(isName, true, member.ValueType, "Property.ValueType")
-		e.writeString(member.ValueType)
+		e.checkChars(isName, true, member.ValueType.String(), "Property.ValueType")
+		e.writeString(member.ValueType.String())
 		e.writeString(" ")
 		e.writeString(member.Class)
 		e.writeString(".")
@@ -168,8 +168,8 @@ func (e *encoder) encodeMember(class *Class, member rbxapi.Member) {
 	case *Function:
 		e.writeString("Function ")
 		e.checkMemberClass(member.Class, class.Name)
-		e.checkChars(isName, true, member.ReturnType, "Function.ReturnType")
-		e.writeString(member.ReturnType)
+		e.checkChars(isName, true, member.ReturnType.String(), "Function.ReturnType")
+		e.writeString(member.ReturnType.String())
 		e.writeString(" ")
 		e.writeString(member.Class)
 		e.writeString(":")
@@ -179,8 +179,8 @@ func (e *encoder) encodeMember(class *Class, member rbxapi.Member) {
 	case *YieldFunction:
 		e.writeString("YieldFunction ")
 		e.checkMemberClass(member.Class, class.Name)
-		e.checkChars(isName, true, member.ReturnType, "YieldFunction.ReturnType")
-		e.writeString(member.ReturnType)
+		e.checkChars(isName, true, member.ReturnType.String(), "YieldFunction.ReturnType")
+		e.writeString(member.ReturnType.String())
 		e.writeString(" ")
 		e.writeString(member.Class)
 		e.writeString(":")
@@ -198,8 +198,8 @@ func (e *encoder) encodeMember(class *Class, member rbxapi.Member) {
 	case *Callback:
 		e.writeString("Callback ")
 		e.checkMemberClass(member.Class, class.Name)
-		e.checkChars(isName, true, member.ReturnType, "Callback.ReturnType")
-		e.writeString(member.ReturnType)
+		e.checkChars(isName, true, member.ReturnType.String(), "Callback.ReturnType")
+		e.writeString(member.ReturnType.String())
 		e.writeString(" ")
 		e.writeString(member.Class)
 		e.writeString(".")
@@ -230,9 +230,9 @@ func (e *encoder) encodeParameter(param Parameter, canDefault bool) {
 		return
 	}
 
-	e.checkChars(isType, true, param.Type, "Argument.Type")
+	e.checkChars(isType, true, param.Type.String(), "Argument.Type")
 	e.checkChars(isName, true, param.Name, "Argument.Name")
-	e.writeString(param.Type)
+	e.writeString(param.Type.String())
 	e.writeString(" ")
 	e.writeString(param.Name)
 	if param.Default != nil {
