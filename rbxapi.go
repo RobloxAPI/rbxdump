@@ -1,5 +1,13 @@
 // The rbxapi package is used to represent information about the Roblox Lua
 // API.
+//
+// This package provides a common interface for multiple implementations of
+// the API. This interface may not be able to expose all information available
+// from a particular implementation. If such information is required, it would
+// be more suitable to use that implementation directly.
+//
+// The rbxapidump and rbxapijson subpackages provide implementations of this
+// interface.
 package rbxapi
 
 // Root represents of the top-level structure of an API.
@@ -24,7 +32,8 @@ type Class interface {
 	// GetName returns the class name.
 	GetName() string
 
-	// GetSuperclass returns the class name of the superclass.
+	// GetSuperclass returns the name of the class that this class inherits
+	// from.
 	GetSuperclass() string
 
 	// GetMembers returns a list of member descriptors belonging to the class.
@@ -41,7 +50,7 @@ type Class interface {
 // more specific type, depending on the member type. These are Property,
 // Function, Event, and Callback.
 type Member interface {
-	// GetMemberType returns the type of member.
+	// GetMemberType returns a string indicating the the type of member.
 	GetMemberType() string
 
 	// GetName returns the name of the member.
@@ -70,7 +79,7 @@ type Function interface {
 	GetSecurity() string
 
 	// GetParameters returns the list of parameters describing the arguments
-	// passed to the function. Parameters may have default values.
+	// passed to the function. These parameters may have default values.
 	GetParameters() []Parameter
 
 	// GetReturnType returns the type of value returned by the function.
@@ -85,7 +94,7 @@ type Event interface {
 	GetSecurity() string
 
 	// GetParameters returns the list of parameters describing the arguments
-	// received from the event. Parameters will not have default values.
+	// received from the event. These parameters cannot have default values.
 	GetParameters() []Parameter
 }
 
@@ -97,20 +106,20 @@ type Callback interface {
 	GetSecurity() string
 
 	// GetParameters returns the list of parameters describing the arguments
-	// passed to the callback. Parameters will not have default values.
+	// passed to the callback. These parameters cannot have default values.
 	GetParameters() []Parameter
 
-	// GetReturnType returns the type of value that should be returned by the
+	// GetReturnType returns the type of value that is returned by the
 	// callback.
 	GetReturnType() Type
 }
 
-// Parameter represents a parameter of a function, event, or callback.
+// Parameter represents a parameter of a function, event, or callback member.
 type Parameter interface {
 	// GetType returns the type of the parameter value.
 	GetType() Type
 
-	// GetName returns a name describing the parameter.
+	// GetName returns the name describing the parameter.
 	GetName() string
 
 	// GetDefault returns a string representing the default value of the
@@ -144,7 +153,7 @@ type EnumItem interface {
 	Taggable
 }
 
-// Taggable indicates that a descriptor is capable of having tags.
+// Taggable indicates a descriptor that is capable of having tags.
 type Taggable interface {
 	// GetTag returns whether the given tag is present in the descriptor.
 	GetTag(tag string) bool
@@ -158,10 +167,11 @@ type Type interface {
 	// GetName returns the name of the type.
 	GetName() string
 
-	// GetCategory returns the category of the type. This may be empty where a
+	// GetCategory returns the category of the type. This may be empty when a
 	// type category is inapplicable or unavailable.
 	GetCategory() string
 
-	// String returns a string representation of the entire type.
+	// String returns a string representation of the entire type. The format
+	// of this thing is implementation-dependent.
 	String() string
 }
