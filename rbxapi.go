@@ -25,6 +25,9 @@ type Root interface {
 	// GetEnum returns the first enum descriptor of the given name, or nil if
 	// no enum of the given name is present.
 	GetEnum(name string) Enum
+
+	// Copy returns a deep copy of the API structure.
+	Copy() Root
 }
 
 // Class represents a class descriptor.
@@ -43,6 +46,9 @@ type Class interface {
 	// if no member of the given name is present.
 	GetMember(name string) Member
 
+	// Copy returns a deep copy of the class descriptor.
+	Copy() Class
+
 	Taggable
 }
 
@@ -55,6 +61,9 @@ type Member interface {
 
 	// GetName returns the name of the member.
 	GetName() string
+
+	// Copy returns a deep copy of the member descriptor.
+	Copy() Member
 
 	Taggable
 }
@@ -125,6 +134,9 @@ type Parameter interface {
 	// GetDefault returns a string representing the default value of the
 	// parameter, and whether a default value is present.
 	GetDefault() (value string, ok bool)
+
+	// Copy returns a deep copy of the parameter.
+	Copy() Parameter
 }
 
 // Enum represents an enum descriptor.
@@ -139,6 +151,9 @@ type Enum interface {
 	// the given name is present.
 	GetItem(name string) EnumItem
 
+	// Copy returns a deep copy of the enum descriptor.
+	Copy() Enum
+
 	Taggable
 }
 
@@ -149,6 +164,9 @@ type EnumItem interface {
 
 	// GetValue returns the value of the enum item.
 	GetValue() int
+
+	// Copy returns a deep copy of the enum item descriptor.
+	Copy() EnumItem
 
 	Taggable
 }
@@ -174,4 +192,7 @@ type Type interface {
 	// String returns a string representation of the entire type. The format
 	// of this thing is implementation-dependent.
 	String() string
+
+	// Copy returns a deep copy of the type.
+	Copy() Type
 }

@@ -49,6 +49,20 @@ func (root *Root) GetEnum(name string) rbxapi.Enum {
 	return nil
 }
 
+func (root *Root) Copy() rbxapi.Root {
+	croot := &Root{
+		Classes: make([]*Class, len(root.Classes)),
+		Enums:   make([]*Enum, len(root.Enums)),
+	}
+	for i, class := range root.Classes {
+		croot.Classes[i] = class.Copy().(*Class)
+	}
+	for i, enum := range root.Enums {
+		croot.Enums[i] = enum.Copy().(*Enum)
+	}
+	return croot
+}
+
 type Class struct {
 	Name           string
 	Superclass     string
@@ -84,6 +98,16 @@ func (class *Class) GetMember(name string) rbxapi.Member {
 	return nil
 }
 
+func (class *Class) Copy() rbxapi.Class {
+	cclass := *class
+	cclass.Members = make([]rbxapi.Member, len(class.Members))
+	for i, member := range class.Members {
+		cclass.Members[i] = member.Copy()
+	}
+	cclass.Tags = class.CopyTags()
+	return &cclass
+}
+
 type Property struct {
 	Name          string
 	ValueType     Type
@@ -100,6 +124,11 @@ func (member *Property) GetName() string           { return member.Name }
 func (member *Property) GetValueType() rbxapi.Type { return member.ValueType }
 func (member *Property) GetSecurity() (read, write string) {
 	return member.ReadSecurity, member.WriteSecurity
+}
+func (member *Property) Copy() rbxapi.Member {
+	cmember := *member
+	cmember.Tags = member.CopyTags()
+	return &cmember
 }
 
 type Function struct {
@@ -121,6 +150,15 @@ func (member *Function) GetParameters() []rbxapi.Parameter {
 	}
 	return list
 }
+func (member *Function) Copy() rbxapi.Member {
+	cmember := *member
+	cmember.Parameters = make([]Parameter, len(member.Parameters))
+	for i, param := range member.Parameters {
+		cmember.Parameters[i] = param.Copy().(Parameter)
+	}
+	cmember.Tags = member.CopyTags()
+	return &cmember
+}
 
 type Event struct {
 	Name       string
@@ -138,6 +176,15 @@ func (member *Event) GetParameters() []rbxapi.Parameter {
 		list[i] = param
 	}
 	return list
+}
+func (member *Event) Copy() rbxapi.Member {
+	cmember := *member
+	cmember.Parameters = make([]Parameter, len(member.Parameters))
+	for i, param := range member.Parameters {
+		cmember.Parameters[i] = param.Copy().(Parameter)
+	}
+	cmember.Tags = member.CopyTags()
+	return &cmember
 }
 
 type Callback struct {
@@ -159,6 +206,15 @@ func (member *Callback) GetParameters() []rbxapi.Parameter {
 	}
 	return list
 }
+func (member *Callback) Copy() rbxapi.Member {
+	cmember := *member
+	cmember.Parameters = make([]Parameter, len(member.Parameters))
+	for i, param := range member.Parameters {
+		cmember.Parameters[i] = param.Copy().(Parameter)
+	}
+	cmember.Tags = member.CopyTags()
+	return &cmember
+}
 
 type Parameter struct {
 	Type    Type
@@ -173,6 +229,12 @@ func (param Parameter) GetDefault() (value string, ok bool) {
 		return *param.Default, true
 	}
 	return "", false
+}
+func (param Parameter) Copy() rbxapi.Parameter {
+	cparam := param
+	d := *param.Default
+	cparam.Default = &d
+	return cparam
 }
 
 type Enum struct {
@@ -197,6 +259,15 @@ func (enum *Enum) GetItem(name string) rbxapi.EnumItem {
 	}
 	return nil
 }
+func (enum *Enum) Copy() rbxapi.Enum {
+	cenum := *enum
+	cenum.Items = make([]*EnumItem, len(enum.Items))
+	for i, item := range enum.Items {
+		cenum.Items[i] = item.Copy().(*EnumItem)
+	}
+	cenum.Tags = enum.CopyTags()
+	return &cenum
+}
 
 type EnumItem struct {
 	Name  string
@@ -206,6 +277,11 @@ type EnumItem struct {
 
 func (item *EnumItem) GetName() string { return item.Name }
 func (item *EnumItem) GetValue() int   { return item.Value }
+func (item *EnumItem) Copy() rbxapi.EnumItem {
+	citem := *item
+	citem.Tags = item.CopyTags()
+	return &citem
+}
 
 type Tags []string
 
@@ -252,6 +328,11 @@ func (tags Tags) GetTags() []string {
 	copy(list, tags)
 	return list
 }
+func (tags Tags) CopyTags() Tags {
+	ctags := make(Tags, len(tags))
+	copy(ctags, tags)
+	return ctags
+}
 
 type Type struct {
 	Category string
@@ -265,4 +346,7 @@ func (typ Type) String() string {
 		return typ.Name
 	}
 	return typ.Category + ":" + typ.Name
+}
+func (typ Type) Copy() rbxapi.Type {
+	return typ
 }
