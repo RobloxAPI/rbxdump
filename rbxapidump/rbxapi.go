@@ -136,7 +136,7 @@ func (class *Class) Copy() rbxapi.Class {
 	for i, member := range class.Members {
 		cclass.Members[i] = member.Copy()
 	}
-	cclass.Tags = class.CopyTags()
+	cclass.Tags = Tags(class.GetTags())
 	return &cclass
 }
 
@@ -177,7 +177,7 @@ func (member *Property) GetName() string {
 // Copy implements the rbxapi.Member interface.
 func (member *Property) Copy() rbxapi.Member {
 	cmember := *member
-	cmember.Tags = member.CopyTags()
+	cmember.Tags = Tags(member.GetTags())
 	return &cmember
 }
 
@@ -243,7 +243,7 @@ func (member *Function) Copy() rbxapi.Member {
 	for i, param := range member.Parameters {
 		cmember.Parameters[i] = param.Copy().(Parameter)
 	}
-	cmember.Tags = member.CopyTags()
+	cmember.Tags = Tags(member.GetTags())
 	return &cmember
 }
 
@@ -299,7 +299,7 @@ func (member *YieldFunction) Copy() rbxapi.Member {
 	for i, param := range member.Parameters {
 		cmember.Parameters[i] = param.Copy().(Parameter)
 	}
-	cmember.Tags = member.CopyTags()
+	cmember.Tags = Tags(member.GetTags())
 	return &cmember
 }
 
@@ -360,7 +360,7 @@ func (member *Event) Copy() rbxapi.Member {
 	for i, param := range member.Parameters {
 		cmember.Parameters[i] = param.Copy().(Parameter)
 	}
-	cmember.Tags = member.CopyTags()
+	cmember.Tags = Tags(member.GetTags())
 	return &cmember
 }
 
@@ -415,7 +415,7 @@ func (member *Callback) Copy() rbxapi.Member {
 	for i, param := range member.Parameters {
 		cmember.Parameters[i] = param.Copy().(Parameter)
 	}
-	cmember.Tags = member.CopyTags()
+	cmember.Tags = Tags(member.GetTags())
 	return &cmember
 }
 
@@ -535,7 +535,7 @@ func (enum *Enum) Copy() rbxapi.Enum {
 	for i, item := range enum.Items {
 		cenum.Items[i] = item.Copy().(*EnumItem)
 	}
-	cenum.Tags = enum.CopyTags()
+	cenum.Tags = Tags(enum.GetTags())
 	return &cenum
 }
 
@@ -566,7 +566,7 @@ func (item *EnumItem) GetValue() int {
 // Copy implements the rbxapi.EnumItem interface.
 func (item *EnumItem) Copy() rbxapi.EnumItem {
 	citem := *item
-	citem.Tags = item.CopyTags()
+	citem.Tags = Tags(item.GetTags())
 	return &citem
 }
 
@@ -592,11 +592,6 @@ func (tags Tags) GetTags() []string {
 	list := make([]string, 0, len(tags))
 	copy(list, tags)
 	return list
-}
-
-// LenTags returns the number of tags in the list.
-func (tags Tags) LenTags() int {
-	return len(tags)
 }
 
 // SetTag adds one or more tags to the list. Duplicate tags are removed.
@@ -629,13 +624,6 @@ loop:
 		}
 		i++
 	}
-}
-
-// CopyTags returns a copy of the tag list.
-func (tags Tags) CopyTags() Tags {
-	ctags := make(Tags, len(tags))
-	copy(ctags, tags)
-	return ctags
 }
 
 // Type represents a value type.
