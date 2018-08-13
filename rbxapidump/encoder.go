@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"github.com/robloxapi/rbxapi"
-	"io"
 	"strconv"
 )
 
@@ -308,15 +307,4 @@ func (e *encoder) encodeTag(tag string) {
 	e.writeString(" [")
 	e.writeString(tag)
 	e.writeString("]")
-}
-
-func Encode(w io.Writer, root *Root) (n int64, err error) {
-	e := &encoder{
-		w:      bufio.NewWriter(w),
-		root:   root,
-		prefix: "",
-		indent: "\t",
-		line:   "\n",
-	}
-	return e.encode()
 }

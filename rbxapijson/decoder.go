@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/robloxapi/rbxapi"
-	"io"
 	"strconv"
 )
 
@@ -115,11 +114,4 @@ func (class *Class) UnmarshalJSON(b []byte) (err error) {
 		class.Members[i] = m.Member
 	}
 	return nil
-}
-
-func Decode(r io.Reader) (root *Root, err error) {
-	jd := json.NewDecoder(r)
-	root = &Root{}
-	err = jd.Decode(root)
-	return root, err
 }
