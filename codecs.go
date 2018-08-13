@@ -84,16 +84,16 @@ func Register(name string, codec Codec) bool {
 	return defaultCodecs.Register(name, codec)
 }
 
-// DecodeFormat decodes r into an API structure, using the codec registered
-// under the given name. Returns UnknownCodecError if the name has not been
+// Decode decodes r into an API structure, using the codec registered under
+// the given name. Returns UnknownCodecError if the name has not been
 // registered.
-func DecodeFormat(name string, r io.Reader) (root Root, err error) {
+func Decode(name string, r io.Reader) (root Root, err error) {
 	return defaultCodecs.Decode(name, r)
 }
 
-// EncodeFormat encodes an API structure into w, using the codec registered
-// under the given name. Returns UnknownCodecError if the name has not been
+// Encode encodes an API structure into w, using the codec registered under
+// the given name. Returns UnknownCodecError if the name has not been
 // registered.
-func EncodeFormat(name string, w io.Writer, root Root) (err error) {
+func Encode(name string, w io.Writer, root Root) (err error) {
 	return defaultCodecs.Encode(name, w, root)
 }

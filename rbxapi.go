@@ -9,7 +9,7 @@
 // The rbxapi interface is most often implemented as a codec that decodes from
 // and encodes to a formatted stream of bytes. Such implementations can be
 // registered with the Register function, which may then be used directly from
-// the rbxapi package via the DecodeFormat and EncodeFormat functions.
+// the rbxapi package via the Decode and Encode functions.
 //
 // The rbxapidump and rbxapijson subpackages provide such implementations of
 // the rbxapi interface. They also provide Register functions, which
@@ -17,7 +17,7 @@
 //
 //     rbxapidump.Register() // Registers as "dump".
 //
-//     root, err := rbxapi.DecodeFormat("dump", r)
+//     root, err := rbxapi.Decode("dump", r)
 //
 package rbxapi
 
