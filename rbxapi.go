@@ -6,19 +6,8 @@
 // information available from a particular implementation. If such information
 // is required, it would be more suitable to use that implementation directly.
 //
-// The rbxapi interface is most often implemented as a codec that decodes from
-// and encodes to a formatted stream of bytes. Such implementations can be
-// registered with the Register function, which may then be used directly from
-// the rbxapi package via the Decode and Encode functions.
-//
-// The rbxapidump and rbxapijson subpackages provide such implementations of
-// the rbxapi interface. They also provide Register functions, which
-// automatically register themselves with the rbxapi package.
-//
-//     rbxapidump.Register() // Registers as "dump".
-//
-//     root, err := rbxapi.Decode("dump", r)
-//
+// The rbxapidump and rbxapijson subpackages provide implementations of the
+// rbxapi interface.
 package rbxapi
 
 // Root represents of the top-level structure of an API.

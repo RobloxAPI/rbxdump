@@ -2,6 +2,7 @@ package rbxapijson
 
 import (
 	"encoding/json"
+	"io"
 )
 
 func (root *Root) MarshalJSON() (b []byte, err error) {
@@ -72,4 +73,11 @@ func (class *Class) MarshalJSON() (b []byte, err error) {
 		}
 	}
 	return json.Marshal(&c)
+}
+
+func Encode(w io.Writer, root *Root) (err error) {
+	je := json.NewEncoder(w)
+	je.SetIndent("", "\t")
+	je.SetEscapeHTML(false)
+	return je.Encode(root)
 }

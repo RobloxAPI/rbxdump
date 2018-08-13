@@ -1,6 +1,7 @@
 package rbxapidump
 
 import (
+	"bufio"
 	"bytes"
 	"github.com/robloxapi/rbxapi"
 	"io"
@@ -505,4 +506,21 @@ func (d *decoder) decodeTags(tags *Tags) {
 
 func (d *decoder) decodeTag() string {
 	return d.decodeNested('[', ']')
+}
+
+// Decode parses an API dump from r. The resulting API structure is a *Root.
+func Decode(r io.Reader) (root *Root, err error) {
+	br, ok := r.(io.ByteReader)
+	if !ok {
+		br = bufio.NewReader(r)
+	}
+	d := decoder{
+		root: &Root{},
+		r:    br,
+		next: make([]byte, 0, 9),
+		line: 1,
+	}
+	err = d.decode()
+	root = d.root
+	return
 }
