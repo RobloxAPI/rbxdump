@@ -8,12 +8,21 @@ import (
 	"strconv"
 )
 
-type SyntaxError struct {
+// SyntaxError indicates that a syntax error occurred while decoding.
+type SyntaxError interface {
+	error
+	// SyntaxError returns an error message and the line on which the error
+	// occurred.
+	SyntaxError() (msg string, line int)
+}
+
+// syntaxError implements the SyntaxError interface.
+type syntaxError struct {
 	Msg  string
 	Line int
 }
 
-func (e *SyntaxError) Error() string {
+func (e *syntaxError) Error() string {
 	return "error on line " + strconv.Itoa(e.Line) + ": " + e.Msg
 }
 
@@ -29,12 +38,12 @@ type decoder struct {
 	enum  *Enum
 }
 
-// Creates a SyntaxError with the current line number.
+// Creates a syntaxError with the current line number.
 func (d *decoder) syntaxError(msg string) {
 	if d.err != nil && d.err != io.EOF {
 		return
 	}
-	d.err = &SyntaxError{Msg: msg, Line: d.line}
+	d.err = &syntaxError{Msg: msg, Line: d.line}
 }
 
 func (d *decoder) getc() (b byte, ok bool) {
@@ -508,7 +517,7 @@ func (d *decoder) decodeTag() string {
 	return d.decodeNested('[', ']')
 }
 
-// Decode parses an API dump from r. The resulting API structure is a *Root.
+// Decode parses an API dump from r.
 func Decode(r io.Reader) (root *Root, err error) {
 	br, ok := r.(io.ByteReader)
 	if !ok {

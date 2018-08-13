@@ -8,12 +8,22 @@ import (
 	"strconv"
 )
 
-type ErrVersion int
+// VersionError is an error indicating that the version of the JSON format is
+// unsupported.
+type VersionError interface {
+	error
+	// VersionError returns the unsupported version.
+	VersionError() int
+}
 
-func (err ErrVersion) Error() string {
+// errVersion implements the VersionError interface.
+type errVersion int
+
+func (err errVersion) Error() string {
 	return "version " + strconv.FormatInt(int64(err), 10) + " is unsupported"
 }
 
+// UnmarshalJSON implements the json.Unmarshaller interface.
 func (root *Root) UnmarshalJSON(b []byte) (err error) {
 	var v struct{ Version int }
 	if err := json.Unmarshal(b, &v); err != nil {
@@ -30,16 +40,19 @@ func (root *Root) UnmarshalJSON(b []byte) (err error) {
 		}
 		*root = Root(r)
 	default:
-		return ErrVersion(v.Version)
+		return errVersion(v.Version)
 	}
 	return nil
 }
 
+// jsonMember is used as an intermediate structure for decoding and encoding a
+// member descriptor.
 type jsonMember struct {
 	MemberType string
 	rbxapi.Member
 }
 
+// UnmarshalJSON implements the json.Unmarshaller interface.
 func (jmember *jsonMember) UnmarshalJSON(b []byte) (err error) {
 	var t struct{ MemberType string }
 	if err := json.Unmarshal(b, &t); err != nil {
@@ -94,6 +107,7 @@ func (jmember *jsonMember) UnmarshalJSON(b []byte) (err error) {
 	return nil
 }
 
+// UnmarshalJSON implements the json.Unmarshaller interface.
 func (class *Class) UnmarshalJSON(b []byte) (err error) {
 	var c struct {
 		Name           string
@@ -117,6 +131,7 @@ func (class *Class) UnmarshalJSON(b []byte) (err error) {
 	return nil
 }
 
+// Decode parses an API dump from r in JSON format.
 func Decode(r io.Reader) (root *Root, err error) {
 	jd := json.NewDecoder(r)
 	root = &Root{}

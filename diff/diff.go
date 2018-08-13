@@ -7,6 +7,8 @@ import (
 	"github.com/robloxapi/rbxapi/patch"
 )
 
+// compareAndCopyTags compares two string slices, and return copies if they
+// are not equal.
 func compareAndCopyTags(prev, next []string) (eq bool, p, n []string) {
 	if len(prev) == len(next) {
 		for i, s := range prev {
@@ -24,6 +26,8 @@ neq:
 	return false, p, n
 }
 
+// compareAndCopyParameters compares two parameter slices, and return copies
+// if they are not equal.
 func compareAndCopyParameters(prev, next []rbxapi.Parameter) (eq bool, p, n []rbxapi.Parameter) {
 	if len(prev) != len(next) {
 		for i, s := range prev {
@@ -152,8 +156,7 @@ func (d *DiffClass) Diff() (actions []patch.Action) {
 // DiffProperty is a patch.Differ that finds differences between two
 // rbxapi.Property values.
 type DiffProperty struct {
-	// Class is the outer structure of the Prev value. It is used only for
-	// context, so it may be omitted.
+	// Class is the outer structure of the Prev value.
 	Class      rbxapi.Class
 	Prev, Next rbxapi.Property
 }
@@ -183,8 +186,7 @@ func (d *DiffProperty) Diff() (actions []patch.Action) {
 // DiffFunction is a patch.Differ that finds differences between two
 // rbxapi.Function values.
 type DiffFunction struct {
-	// Class is the outer structure of the Prev value. It is used only for
-	// context, so it may be omitted.
+	// Class is the outer structure of the Prev value.
 	Class      rbxapi.Class
 	Prev, Next rbxapi.Function
 }
@@ -212,8 +214,7 @@ func (d *DiffFunction) Diff() (actions []patch.Action) {
 // DiffEvent is a patch.Differ that finds differences between two rbxapi.Event
 // values.
 type DiffEvent struct {
-	// Class is the outer structure of the Prev value. It is used only for
-	// context, so it may be omitted.
+	// Class is the outer structure of the Prev value.
 	Class      rbxapi.Class
 	Prev, Next rbxapi.Event
 }
@@ -238,8 +239,7 @@ func (d *DiffEvent) Diff() (actions []patch.Action) {
 // DiffCallback is a patch.Differ that finds differences between two
 // rbxapi.Callback values.
 type DiffCallback struct {
-	// Class is the outer structure of the Prev value. It is used only for
-	// context, so it may be omitted.
+	// Class is the outer structure of the Prev value.
 	Class      rbxapi.Class
 	Prev, Next rbxapi.Callback
 }
@@ -302,8 +302,7 @@ func (d *DiffEnum) Diff() (actions []patch.Action) {
 // DiffEnumItem is a patch.Differ that finds differences between two
 // rbxapi.EnumItem values.
 type DiffEnumItem struct {
-	// Enum is the outer structure of the Prev value. It is used only for
-	// context, so it may be omitted.
+	// Enum is the outer structure of the Prev value.
 	Enum       rbxapi.Enum
 	Prev, Next rbxapi.EnumItem
 }

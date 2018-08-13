@@ -7,14 +7,7 @@ import (
 	"strings"
 )
 
-type ClassAction struct {
-	Type  patch.Type
-	Class rbxapi.Class
-	Field string
-	Prev  interface{}
-	Next  interface{}
-}
-
+// toString converts common API value types to strings.
 func toString(v interface{}) string {
 	switch v := v.(type) {
 	case bool:
@@ -41,6 +34,15 @@ func toString(v interface{}) string {
 		return "(" + strings.Join(ss, ", ") + ")"
 	}
 	return "<unknown value>"
+}
+
+// ClassAction represents a patch.Action that applies to a rbxapi.Class.
+type ClassAction struct {
+	Type  patch.Type
+	Class rbxapi.Class
+	Field string
+	Prev  interface{}
+	Next  interface{}
 }
 
 func (a *ClassAction) GetClass() rbxapi.Class { return a.Class }
@@ -70,6 +72,7 @@ func (a *ClassAction) String() string {
 	return ""
 }
 
+// MemberAction represents a patch.Action that applies to a rbxapi.Member.
 type MemberAction struct {
 	Type   patch.Type
 	Class  rbxapi.Class
@@ -106,6 +109,7 @@ func (a *MemberAction) String() string {
 	return ""
 }
 
+// EnumAction represents a patch.Action that applies to a rbxapi.Enum.
 type EnumAction struct {
 	Type  patch.Type
 	Enum  rbxapi.Enum
@@ -141,6 +145,7 @@ func (a *EnumAction) String() string {
 	return ""
 }
 
+// EnumItemAction represents a patch.Action that applies to a rbxapi.EnumItem.
 type EnumItemAction struct {
 	Type  patch.Type
 	Enum  rbxapi.Enum

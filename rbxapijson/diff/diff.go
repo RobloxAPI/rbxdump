@@ -9,6 +9,8 @@ import (
 	"github.com/robloxapi/rbxapi/rbxapijson"
 )
 
+// compareAndCopyTags compares two string slices, and return copies if they
+// are not equal.
 func compareAndCopyTags(prev, next []string) (eq bool, p, n []string) {
 	if len(prev) == len(next) {
 		for i, s := range prev {
@@ -26,6 +28,8 @@ neq:
 	return false, p, n
 }
 
+// compareAndCopyParameters compares two parameter slices, and return copies
+// if they are not equal.
 func compareAndCopyParameters(prev, next []rbxapijson.Parameter) (eq bool, p, n []rbxapi.Parameter) {
 	if len(prev) != len(next) {
 		for i, s := range prev {
@@ -47,6 +51,7 @@ neq:
 	return true, p, n
 }
 
+// Diff is a patch.Differ that finds differences between two Root values.
 type Diff struct {
 	Prev, Next *rbxapijson.Root
 }
@@ -89,6 +94,7 @@ func (d *Diff) Diff() (actions []patch.Action) {
 	return
 }
 
+// Diff is a patch.Differ that finds differences between two Class values.
 type DiffClass struct {
 	Prev, Next *rbxapijson.Class
 }
@@ -149,6 +155,7 @@ func (d *DiffClass) Diff() (actions []patch.Action) {
 	return
 }
 
+// Diff is a patch.Differ that finds differences between two Property values.
 type DiffProperty struct {
 	Class      *rbxapijson.Class
 	Prev, Next *rbxapijson.Property
@@ -182,6 +189,7 @@ func (d *DiffProperty) Diff() (actions []patch.Action) {
 	return
 }
 
+// Diff is a patch.Differ that finds differences between two Function values.
 type DiffFunction struct {
 	Class      *rbxapijson.Class
 	Prev, Next *rbxapijson.Function
@@ -206,6 +214,7 @@ func (d *DiffFunction) Diff() (actions []patch.Action) {
 	return
 }
 
+// Diff is a patch.Differ that finds differences between two Event values.
 type DiffEvent struct {
 	Class      *rbxapijson.Class
 	Prev, Next *rbxapijson.Event
@@ -227,6 +236,7 @@ func (d *DiffEvent) Diff() (actions []patch.Action) {
 	return
 }
 
+// Diff is a patch.Differ that finds differences between two Callback values.
 type DiffCallback struct {
 	Class      *rbxapijson.Class
 	Prev, Next *rbxapijson.Callback
@@ -251,6 +261,7 @@ func (d *DiffCallback) Diff() (actions []patch.Action) {
 	return
 }
 
+// Diff is a patch.Differ that finds differences between two Enum values.
 type DiffEnum struct {
 	Prev, Next *rbxapijson.Enum
 }
@@ -282,6 +293,7 @@ func (d *DiffEnum) Diff() (actions []patch.Action) {
 	return
 }
 
+// Diff is a patch.Differ that finds differences between two EnumItem values.
 type DiffEnumItem struct {
 	Enum       *rbxapijson.Enum
 	Prev, Next *rbxapijson.EnumItem

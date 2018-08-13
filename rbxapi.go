@@ -10,7 +10,7 @@
 // rbxapi interface.
 package rbxapi
 
-// Root represents of the top-level structure of an API.
+// Root represents the top-level structure of an API.
 type Root interface {
 	// GetClasses returns a list of class descriptors present in the API.
 	GetClasses() []Class
@@ -52,9 +52,8 @@ type Class interface {
 	Taggable
 }
 
-// Member represents a class member descriptor. A Member can be casted to a
-// more specific type, depending on the member type. These are Property,
-// Function, Event, and Callback.
+// Member represents a class member descriptor. A Member can be asserted to a
+// more specific type. These are Property, Function, Event, and Callback.
 type Member interface {
 	// GetMemberType returns a string indicating the the type of member.
 	GetMemberType() string

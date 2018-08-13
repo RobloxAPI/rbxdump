@@ -5,6 +5,7 @@ import (
 	"io"
 )
 
+// MarshalJSON implements the json.Marshaller interface.
 func (root *Root) MarshalJSON() (b []byte, err error) {
 	r := struct {
 		Version int
@@ -14,6 +15,7 @@ func (root *Root) MarshalJSON() (b []byte, err error) {
 	return json.Marshal(&r)
 }
 
+// MarshalJSON implements the json.Marshaller interface.
 func (class *Class) MarshalJSON() (b []byte, err error) {
 	var c struct {
 		Name           string
@@ -75,6 +77,7 @@ func (class *Class) MarshalJSON() (b []byte, err error) {
 	return json.Marshal(&c)
 }
 
+// Encode encodes root, writing the results to w in the API dump JSON format.
 func Encode(w io.Writer, root *Root) (err error) {
 	je := json.NewEncoder(w)
 	je.SetIndent("", "\t")

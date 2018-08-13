@@ -82,26 +82,42 @@ func (t Type) String() string {
 
 // Class represents an Action that applies to a rbxapi.Class.
 type Class interface {
+	// GetClass returns the class associated with the action. When adding or
+	// removing, this is the class being added or removed. When changing, the
+	// class is meant to be used only for context.
 	GetClass() rbxapi.Class
 	Action
 }
 
 // Member represents an Action that applies to a rbxapi.Member.
 type Member interface {
+	// GetClass returns the class associated with the action. The class is
+	// meant to be used only for context.
 	GetClass() rbxapi.Class
+	// GetMember returns the member associated with the action. When adding or
+	// removing, this is the member being added or removed. When changing, the
+	// member is meant to be used only for context.
 	GetMember() rbxapi.Member
 	Action
 }
 
 // Enum represents an Action that applies to a rbxapi.Enum.
 type Enum interface {
+	// GetEnum returns the enum associated with the action. When adding or
+	// removing, this is the enum being added or removed. When changing, the
+	// enum is meant to be used only for context.
 	GetEnum() rbxapi.Enum
 	Action
 }
 
 // EnumItem represents an Action that applies to a rbxapi.EnumItem.
 type EnumItem interface {
+	// GetEnum returns the enum associated with the action. The enum is meant
+	// to be used only for context.
 	GetEnum() rbxapi.Enum
+	// GetItem returns the enum item associated with the action. When adding
+	// or removing, this is the item being added or removed. When changing,
+	// the item is meant to be used only for context.
 	GetItem() rbxapi.EnumItem
 	Action
 }
