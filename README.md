@@ -2,7 +2,7 @@
 
 # rbxapi
 
-The rbxdump package is a Go package used to represent information about the
+The rbxapi package is a Go package used to represent information about the
 Roblox Lua API.
 
 ## API References
