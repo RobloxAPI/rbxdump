@@ -36,6 +36,13 @@ func toString(v interface{}) string {
 	return "<unknown value>"
 }
 
+func tagsToString(tags []string) string {
+	if len(tags) == 0 {
+		return ""
+	}
+	return " " + toString(tags)
+}
+
 // ClassAction represents a patch.Action that applies to a rbxapi.Class.
 type ClassAction struct {
 	Type  patch.Type
@@ -61,6 +68,7 @@ func (a *ClassAction) String() string {
 		}
 		return a.Type.String() +
 			" Class " + a.Class.GetName() +
+			tagsToString(a.Class.GetTags()) +
 			strings.Join(ms, "")
 	case patch.Change:
 		return a.Type.String() +
@@ -97,7 +105,8 @@ func (a *MemberAction) String() string {
 	case patch.Add, patch.Remove:
 		return a.Type.String() +
 			" " + a.Member.GetMemberType() +
-			" " + class + a.Member.GetName()
+			" " + class + a.Member.GetName() +
+			tagsToString(a.Member.GetTags())
 	case patch.Change:
 		return a.Type.String() +
 			" field " + a.Field +
@@ -134,6 +143,7 @@ func (a *EnumAction) String() string {
 		}
 		return a.Type.String() +
 			" Enum " + a.Enum.GetName() +
+			tagsToString(a.Enum.GetTags()) +
 			strings.Join(is, "")
 	case patch.Change:
 		return a.Type.String() +
@@ -169,7 +179,8 @@ func (a *EnumItemAction) String() string {
 	switch a.Type {
 	case patch.Add, patch.Remove:
 		return a.Type.String() +
-			" EnumItem " + enum + a.Item.GetName()
+			" EnumItem " + enum + a.Item.GetName() +
+			tagsToString(a.Item.GetTags())
 	case patch.Change:
 		return a.Type.String() +
 			" field " + a.Field +
