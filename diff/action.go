@@ -97,7 +97,7 @@ func (a *MemberAction) String() string {
 	case patch.Add, patch.Remove:
 		return a.Type.String() +
 			" " + a.Member.GetMemberType() +
-			class + "." + a.Member.GetName()
+			" " + class + a.Member.GetName()
 	case patch.Change:
 		return a.Type.String() +
 			" field " + a.Field +
