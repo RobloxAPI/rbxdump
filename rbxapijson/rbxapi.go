@@ -508,7 +508,7 @@ func (tags Tags) GetTag(tag string) bool {
 //
 // GetTags implements the rbxapi.Taggable interface.
 func (tags Tags) GetTags() []string {
-	list := make([]string, 0, len(tags))
+	list := make([]string, len(tags))
 	copy(list, tags)
 	return list
 }
