@@ -38,14 +38,28 @@ func copyMember(member rbxapi.Member) rbxapi.Member {
 			Tags:      Tags(member.GetTags()),
 		}
 	case rbxapi.Function:
-		if member, ok := member.(*Function); ok {
+		// Function and Callback have the same methods.
+		switch member := member.(type) {
+		case *Function:
 			return member.Copy().(*Function)
+		case *Callback:
+			return member.Copy().(*Callback)
 		}
-		return &Function{
-			Name:       member.GetName(),
-			ReturnType: copyType(member.GetReturnType()),
-			Parameters: copyParameters(member.GetParameters()),
-			Tags:       Tags(member.GetTags()),
+		switch member.GetMemberType() {
+		case "Function":
+			return &Function{
+				Name:       member.GetName(),
+				ReturnType: copyType(member.GetReturnType()),
+				Parameters: copyParameters(member.GetParameters()),
+				Tags:       Tags(member.GetTags()),
+			}
+		case "Callback":
+			return &Callback{
+				Name:       member.GetName(),
+				ReturnType: copyType(member.GetReturnType()),
+				Parameters: copyParameters(member.GetParameters()),
+				Tags:       Tags(member.GetTags()),
+			}
 		}
 	case rbxapi.Event:
 		if member, ok := member.(*Event); ok {
@@ -53,16 +67,6 @@ func copyMember(member rbxapi.Member) rbxapi.Member {
 		}
 		return &Event{
 			Name:       member.GetName(),
-			Parameters: copyParameters(member.GetParameters()),
-			Tags:       Tags(member.GetTags()),
-		}
-	case rbxapi.Callback:
-		if member, ok := member.(*Callback); ok {
-			return member.Copy().(*Callback)
-		}
-		return &Callback{
-			Name:       member.GetName(),
-			ReturnType: copyType(member.GetReturnType()),
 			Parameters: copyParameters(member.GetParameters()),
 			Tags:       Tags(member.GetTags()),
 		}

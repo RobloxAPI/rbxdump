@@ -119,26 +119,34 @@ func (d *DiffClass) Diff() (actions []patch.Action) {
 				actions = append(actions, &MemberAction{Type: patch.Remove, Class: d.Prev, Member: p})
 				continue
 			}
-			switch p := p.(type) {
-			case rbxapi.Property:
-				if n, ok := n.(rbxapi.Property); ok {
-					actions = append(actions, (&DiffProperty{d.Prev, p, n}).Diff()...)
-					continue
+			switch p.GetMemberType() {
+			case "Property":
+				if p, ok := n.(rbxapi.Property); ok {
+					if n, ok := n.(rbxapi.Property); ok {
+						actions = append(actions, (&DiffProperty{d.Prev, p, n}).Diff()...)
+						continue
+					}
 				}
-			case rbxapi.Function:
-				if n, ok := n.(rbxapi.Function); ok {
-					actions = append(actions, (&DiffFunction{d.Prev, p, n}).Diff()...)
-					continue
+			case "Function":
+				if p, ok := n.(rbxapi.Function); ok {
+					if n, ok := n.(rbxapi.Function); ok {
+						actions = append(actions, (&DiffFunction{d.Prev, p, n}).Diff()...)
+						continue
+					}
 				}
-			case rbxapi.Event:
-				if n, ok := n.(rbxapi.Event); ok {
-					actions = append(actions, (&DiffEvent{d.Prev, p, n}).Diff()...)
-					continue
+			case "Event":
+				if p, ok := n.(rbxapi.Event); ok {
+					if n, ok := n.(rbxapi.Event); ok {
+						actions = append(actions, (&DiffEvent{d.Prev, p, n}).Diff()...)
+						continue
+					}
 				}
-			case rbxapi.Callback:
-				if n, ok := n.(rbxapi.Callback); ok {
-					actions = append(actions, (&DiffCallback{d.Prev, p, n}).Diff()...)
-					continue
+			case "Callback":
+				if p, ok := n.(rbxapi.Callback); ok {
+					if n, ok := n.(rbxapi.Callback); ok {
+						actions = append(actions, (&DiffCallback{d.Prev, p, n}).Diff()...)
+						continue
+					}
 				}
 			}
 			actions = append(actions, &MemberAction{Type: patch.Remove, Class: d.Prev, Member: p})

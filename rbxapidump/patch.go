@@ -42,22 +42,26 @@ func copyMember(member rbxapi.Member) rbxapi.Member {
 			Tags:      Tags(member.GetTags()),
 		}
 	case rbxapi.Function:
-		return &Function{
-			Name:       member.GetName(),
-			ReturnType: copyType(member.GetReturnType()),
-			Parameters: copyParameters(member.GetParameters()),
-			Tags:       Tags(member.GetTags()),
+		// Function and Callback have the same methods.
+		switch member.GetMemberType() {
+		case "Function":
+			return &Function{
+				Name:       member.GetName(),
+				ReturnType: copyType(member.GetReturnType()),
+				Parameters: copyParameters(member.GetParameters()),
+				Tags:       Tags(member.GetTags()),
+			}
+		case "Callback":
+			return &Callback{
+				Name:       member.GetName(),
+				ReturnType: copyType(member.GetReturnType()),
+				Parameters: copyParameters(member.GetParameters()),
+				Tags:       Tags(member.GetTags()),
+			}
 		}
 	case rbxapi.Event:
 		return &Event{
 			Name:       member.GetName(),
-			Parameters: copyParameters(member.GetParameters()),
-			Tags:       Tags(member.GetTags()),
-		}
-	case rbxapi.Callback:
-		return &Callback{
-			Name:       member.GetName(),
-			ReturnType: copyType(member.GetReturnType()),
 			Parameters: copyParameters(member.GetParameters()),
 			Tags:       Tags(member.GetTags()),
 		}
