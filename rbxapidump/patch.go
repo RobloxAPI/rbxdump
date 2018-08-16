@@ -132,7 +132,9 @@ func (root *Root) Patch(actions []patch.Action) {
 				name := aclass.GetName()
 				for i, class := range root.Classes {
 					if class.Name == name {
-						root.Classes = append(root.Classes[:i], root.Classes[i+1:]...)
+						copy(root.Classes[i:], root.Classes[i+1:])
+						root.Classes[len(root.Classes)-1] = nil
+						root.Classes = root.Classes[:len(root.Classes)-1]
 						break
 					}
 				}
@@ -194,7 +196,9 @@ func (root *Root) Patch(actions []patch.Action) {
 				name := amember.GetName()
 				for i, member := range class.Members {
 					if member.GetName() == name {
-						class.Members = append(class.Members[:i], class.Members[i+1:]...)
+						copy(class.Members[i:], class.Members[i+1:])
+						class.Members[len(class.Members)-1] = nil
+						class.Members = class.Members[:len(class.Members)-1]
 						break
 					}
 				}
@@ -314,7 +318,9 @@ func (root *Root) Patch(actions []patch.Action) {
 				name := aenum.GetName()
 				for i, enum := range root.Enums {
 					if enum.Name == name {
-						root.Enums = append(root.Enums[:i], root.Enums[i+1:]...)
+						copy(root.Enums[i:], root.Enums[i+1:])
+						root.Enums[len(root.Enums)-1] = nil
+						root.Enums = root.Enums[:len(root.Enums)-1]
 						break
 					}
 				}
@@ -372,7 +378,9 @@ func (root *Root) Patch(actions []patch.Action) {
 				name := aitem.GetName()
 				for i, item := range enum.Items {
 					if item.GetName() == name {
-						enum.Items = append(enum.Items[:i], enum.Items[i+1:]...)
+						copy(enum.Items[i:], enum.Items[i+1:])
+						enum.Items[len(enum.Items)-1] = nil
+						enum.Items = enum.Items[:len(enum.Items)-1]
 						break
 					}
 				}
