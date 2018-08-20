@@ -13,13 +13,15 @@ package rbxapi
 // Root represents the top-level structure of an API.
 type Root interface {
 	// GetClasses returns a list of class descriptors present in the API.
+	// Items in the list must have a consistent order.
 	GetClasses() []Class
 
 	// GetClass returns the first class descriptor of the given name, or nil
 	// if no class of the given name is present.
 	GetClass(name string) Class
 
-	// GetEnums returns a list of enum descriptors present in the API.
+	// GetEnums returns a list of enum descriptors present in the API. Items
+	// in the list must have a consistent order.
 	GetEnums() []Enum
 
 	// GetEnum returns the first enum descriptor of the given name, or nil if
@@ -40,6 +42,7 @@ type Class interface {
 	GetSuperclass() string
 
 	// GetMembers returns a list of member descriptors belonging to the class.
+	// Items in the list must have a consistent order.
 	GetMembers() []Member
 
 	// GetMember returns the first member descriptor of the given name, or nil
@@ -143,7 +146,8 @@ type Enum interface {
 	// GetName returns the name of the enum.
 	GetName() string
 
-	// GetItems returns a list of items of the enum.
+	// GetItems returns a list of items of the enum. Items in the list must
+	// have a consistent order.
 	GetItems() []EnumItem
 
 	// GetItem returns the first item of the given name, or nil if no item of
@@ -175,7 +179,8 @@ type Taggable interface {
 	// GetTag returns whether the given tag is present in the descriptor.
 	GetTag(tag string) bool
 
-	// GetTags returns a list of all tags present in the descriptor.
+	// GetTags returns a list of all tags present in the descriptor. Items in
+	// the list must have a consistent order.
 	GetTags() []string
 }
 
