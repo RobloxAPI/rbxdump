@@ -63,7 +63,7 @@ func (d *Diff) Diff() (actions []patch.Action) {
 				actions = append(actions, &ClassAction{Type: patch.Remove, Class: p})
 				continue
 			}
-			actions = append(actions, (&DiffClass{p, n}).Diff()...)
+			actions = append(actions, (&DiffClass{p, n, false}).Diff()...)
 		}
 		for _, n := range d.Next.GetClasses() {
 			if _, ok := names[n.GetName()]; !ok {
@@ -81,7 +81,7 @@ func (d *Diff) Diff() (actions []patch.Action) {
 				actions = append(actions, &EnumAction{Type: patch.Remove, Enum: p})
 				continue
 			}
-			actions = append(actions, (&DiffEnum{p, n}).Diff()...)
+			actions = append(actions, (&DiffEnum{p, n, false}).Diff()...)
 		}
 		for _, n := range d.Next.GetEnums() {
 			if _, ok := names[n.GetName()]; !ok {
@@ -96,6 +96,8 @@ func (d *Diff) Diff() (actions []patch.Action) {
 // values.
 type DiffClass struct {
 	Prev, Next rbxapi.Class
+	// ExcludeMembers indicates whether members should be diffed.
+	ExcludeMembers bool
 }
 
 // Diff implements the patch.Differ interface.
@@ -109,7 +111,7 @@ func (d *DiffClass) Diff() (actions []patch.Action) {
 	if eq, p, n := compareAndCopyTags(d.Prev.GetTags(), d.Next.GetTags()); !eq {
 		actions = append(actions, &ClassAction{patch.Change, d.Prev, "Tags", p, n})
 	}
-	{
+	if !d.ExcludeMembers {
 		members := d.Prev.GetMembers()
 		names := make(map[string]struct{}, len(members))
 		for _, p := range members {
@@ -276,6 +278,8 @@ func (d *DiffCallback) Diff() (actions []patch.Action) {
 // values.
 type DiffEnum struct {
 	Prev, Next rbxapi.Enum
+	// ExcludeItems indicates whether enum items should be diffed.
+	ExcludeItems bool
 }
 
 // Diff implements the patch.Differ interface.
@@ -286,7 +290,7 @@ func (d *DiffEnum) Diff() (actions []patch.Action) {
 	if eq, p, n := compareAndCopyTags(d.Prev.GetTags(), d.Next.GetTags()); !eq {
 		actions = append(actions, &EnumAction{patch.Change, d.Prev, "Tags", p, n})
 	}
-	{
+	if !d.ExcludeItems {
 		items := d.Prev.GetItems()
 		names := make(map[string]struct{}, len(items))
 		for _, p := range items {
