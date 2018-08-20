@@ -54,38 +54,62 @@ type Diff struct {
 // Diff implements the patch.Differ interface.
 func (d *Diff) Diff() (actions []patch.Action) {
 	{
-		classes := d.Prev.GetClasses()
-		names := make(map[string]struct{}, len(classes))
-		for _, p := range classes {
-			names[p.GetName()] = struct{}{}
-			n := d.Next.GetClass(p.GetName())
-			if n == nil {
-				actions = append(actions, &ClassAction{Type: patch.Remove, Class: p})
-				continue
+		var names map[string]struct{}
+		if d.Prev != nil {
+			classes := d.Prev.GetClasses()
+			names = make(map[string]struct{}, len(classes))
+			if d.Next == nil {
+				for _, p := range classes {
+					names[p.GetName()] = struct{}{}
+					actions = append(actions, &ClassAction{Type: patch.Remove, Class: p})
+				}
+			} else {
+				for _, p := range classes {
+					names[p.GetName()] = struct{}{}
+					n := d.Next.GetClass(p.GetName())
+					if n == nil {
+						actions = append(actions, &ClassAction{Type: patch.Remove, Class: p})
+						continue
+					}
+					actions = append(actions, (&DiffClass{p, n, false}).Diff()...)
+				}
 			}
-			actions = append(actions, (&DiffClass{p, n, false}).Diff()...)
 		}
-		for _, n := range d.Next.GetClasses() {
-			if _, ok := names[n.GetName()]; !ok {
-				actions = append(actions, &ClassAction{Type: patch.Add, Class: n})
+		if d.Next != nil {
+			for _, n := range d.Next.GetClasses() {
+				if _, ok := names[n.GetName()]; !ok {
+					actions = append(actions, &ClassAction{Type: patch.Add, Class: n})
+				}
 			}
 		}
 	}
 	{
-		enums := d.Prev.GetEnums()
-		names := make(map[string]struct{}, len(enums))
-		for _, p := range enums {
-			names[p.GetName()] = struct{}{}
-			n := d.Next.GetEnum(p.GetName())
-			if n == nil {
-				actions = append(actions, &EnumAction{Type: patch.Remove, Enum: p})
-				continue
+		var names map[string]struct{}
+		if d.Prev != nil {
+			enums := d.Prev.GetEnums()
+			names = make(map[string]struct{}, len(enums))
+			if d.Next == nil {
+				for _, p := range enums {
+					names[p.GetName()] = struct{}{}
+					actions = append(actions, &EnumAction{Type: patch.Remove, Enum: p})
+				}
+			} else {
+				for _, p := range enums {
+					names[p.GetName()] = struct{}{}
+					n := d.Next.GetEnum(p.GetName())
+					if n == nil {
+						actions = append(actions, &EnumAction{Type: patch.Remove, Enum: p})
+						continue
+					}
+					actions = append(actions, (&DiffEnum{p, n, false}).Diff()...)
+				}
 			}
-			actions = append(actions, (&DiffEnum{p, n, false}).Diff()...)
 		}
-		for _, n := range d.Next.GetEnums() {
-			if _, ok := names[n.GetName()]; !ok {
-				actions = append(actions, &EnumAction{Type: patch.Add, Enum: n})
+		if d.Next != nil {
+			for _, n := range d.Next.GetEnums() {
+				if _, ok := names[n.GetName()]; !ok {
+					actions = append(actions, &EnumAction{Type: patch.Add, Enum: n})
+				}
 			}
 		}
 	}
@@ -102,6 +126,15 @@ type DiffClass struct {
 
 // Diff implements the patch.Differ interface.
 func (d *DiffClass) Diff() (actions []patch.Action) {
+	if d.Prev == nil && d.Next == nil {
+		return
+	} else if d.Prev == nil {
+		actions = append(actions, &ClassAction{Type: patch.Add, Class: d.Next})
+		return
+	} else if d.Next == nil {
+		actions = append(actions, &ClassAction{Type: patch.Remove, Class: d.Prev})
+		return
+	}
 	if p, n := (d.Prev.GetName()), d.Next.GetName(); p != n {
 		actions = append(actions, &ClassAction{patch.Change, d.Prev, "Name", p, n})
 	}
@@ -173,6 +206,15 @@ type DiffProperty struct {
 
 // Diff implements the patch.Differ interface.
 func (d *DiffProperty) Diff() (actions []patch.Action) {
+	if d.Prev == nil && d.Next == nil {
+		return
+	} else if d.Prev == nil {
+		actions = append(actions, &MemberAction{Type: patch.Add, Class: d.Class, Member: d.Next})
+		return
+	} else if d.Next == nil {
+		actions = append(actions, &MemberAction{Type: patch.Remove, Class: d.Class, Member: d.Prev})
+		return
+	}
 	if p, n := (d.Prev.GetName()), d.Next.GetName(); p != n {
 		actions = append(actions, &MemberAction{patch.Change, d.Class, d.Prev, "Name", p, n})
 	}
@@ -203,6 +245,15 @@ type DiffFunction struct {
 
 // Diff implements the patch.Differ interface.
 func (d *DiffFunction) Diff() (actions []patch.Action) {
+	if d.Prev == nil && d.Next == nil {
+		return
+	} else if d.Prev == nil {
+		actions = append(actions, &MemberAction{Type: patch.Add, Class: d.Class, Member: d.Next})
+		return
+	} else if d.Next == nil {
+		actions = append(actions, &MemberAction{Type: patch.Remove, Class: d.Class, Member: d.Prev})
+		return
+	}
 	if p, n := (d.Prev.GetName()), d.Next.GetName(); p != n {
 		actions = append(actions, &MemberAction{patch.Change, d.Class, d.Prev, "Name", p, n})
 	}
@@ -231,6 +282,15 @@ type DiffEvent struct {
 
 // Diff implements the patch.Differ interface.
 func (d *DiffEvent) Diff() (actions []patch.Action) {
+	if d.Prev == nil && d.Next == nil {
+		return
+	} else if d.Prev == nil {
+		actions = append(actions, &MemberAction{Type: patch.Add, Class: d.Class, Member: d.Next})
+		return
+	} else if d.Next == nil {
+		actions = append(actions, &MemberAction{Type: patch.Remove, Class: d.Class, Member: d.Prev})
+		return
+	}
 	if p, n := (d.Prev.GetName()), d.Next.GetName(); p != n {
 		actions = append(actions, &MemberAction{patch.Change, d.Class, d.Prev, "Name", p, n})
 	}
@@ -256,6 +316,15 @@ type DiffCallback struct {
 
 // Diff implements the patch.Differ interface.
 func (d *DiffCallback) Diff() (actions []patch.Action) {
+	if d.Prev == nil && d.Next == nil {
+		return
+	} else if d.Prev == nil {
+		actions = append(actions, &MemberAction{Type: patch.Add, Class: d.Class, Member: d.Next})
+		return
+	} else if d.Next == nil {
+		actions = append(actions, &MemberAction{Type: patch.Remove, Class: d.Class, Member: d.Prev})
+		return
+	}
 	if p, n := (d.Prev.GetName()), d.Next.GetName(); p != n {
 		actions = append(actions, &MemberAction{patch.Change, d.Class, d.Prev, "Name", p, n})
 	}
@@ -284,6 +353,15 @@ type DiffEnum struct {
 
 // Diff implements the patch.Differ interface.
 func (d *DiffEnum) Diff() (actions []patch.Action) {
+	if d.Prev == nil && d.Next == nil {
+		return
+	} else if d.Prev == nil {
+		actions = append(actions, &EnumAction{Type: patch.Add, Enum: d.Next})
+		return
+	} else if d.Next == nil {
+		actions = append(actions, &EnumAction{Type: patch.Remove, Enum: d.Prev})
+		return
+	}
 	if p, n := (d.Prev.GetName()), d.Next.GetName(); p != n {
 		actions = append(actions, &EnumAction{patch.Change, d.Prev, "Name", p, n})
 	}
@@ -321,6 +399,15 @@ type DiffEnumItem struct {
 
 // Diff implements the patch.Differ interface.
 func (d *DiffEnumItem) Diff() (actions []patch.Action) {
+	if d.Prev == nil && d.Next == nil {
+		return
+	} else if d.Prev == nil {
+		actions = append(actions, &EnumItemAction{Type: patch.Add, Enum: d.Enum, Item: d.Next})
+		return
+	} else if d.Next == nil {
+		actions = append(actions, &EnumItemAction{Type: patch.Remove, Enum: d.Enum, Item: d.Prev})
+		return
+	}
 	if p, n := (d.Prev.GetName()), d.Next.GetName(); p != n {
 		actions = append(actions, &EnumItemAction{patch.Change, d.Enum, d.Prev, "Name", p, n})
 	}
