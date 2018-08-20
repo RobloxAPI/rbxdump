@@ -66,7 +66,7 @@ func (d *Diff) Diff() (actions []patch.Action) {
 				actions = append(actions, &diff.ClassAction{Type: patch.Remove, Class: p})
 				continue
 			}
-			actions = append(actions, (&DiffClass{p, n}).Diff()...)
+			actions = append(actions, (&DiffClass{p, n, false}).Diff()...)
 		}
 		for _, n := range d.Next.Classes {
 			if _, ok := names[n.Name]; !ok {
@@ -83,7 +83,7 @@ func (d *Diff) Diff() (actions []patch.Action) {
 				actions = append(actions, &diff.EnumAction{Type: patch.Remove, Enum: p})
 				continue
 			}
-			actions = append(actions, (&DiffEnum{p, n}).Diff()...)
+			actions = append(actions, (&DiffEnum{p, n, false}).Diff()...)
 		}
 		for _, n := range d.Next.Enums {
 			if _, ok := names[n.Name]; !ok {
@@ -97,6 +97,8 @@ func (d *Diff) Diff() (actions []patch.Action) {
 // Diff is a patch.Differ that finds differences between two Class values.
 type DiffClass struct {
 	Prev, Next *rbxapijson.Class
+	// ExcludeMembers indicates whether members should be diffed.
+	ExcludeMembers bool
 }
 
 func (d *DiffClass) Diff() (actions []patch.Action) {
@@ -112,7 +114,7 @@ func (d *DiffClass) Diff() (actions []patch.Action) {
 	if eq, p, n := compareAndCopyTags(d.Prev.GetTags(), d.Next.GetTags()); !eq {
 		actions = append(actions, &diff.ClassAction{patch.Change, d.Prev, "Tags", p, n})
 	}
-	{
+	if !d.ExcludeMembers {
 		names := make(map[string]struct{}, len(d.Prev.Members))
 		for _, p := range d.Prev.Members {
 			names[p.GetName()] = struct{}{}
@@ -264,6 +266,8 @@ func (d *DiffCallback) Diff() (actions []patch.Action) {
 // Diff is a patch.Differ that finds differences between two Enum values.
 type DiffEnum struct {
 	Prev, Next *rbxapijson.Enum
+	// ExcludeItems indicates whether enum items should be diffed.
+	ExcludeItems bool
 }
 
 func (d *DiffEnum) Diff() (actions []patch.Action) {
@@ -273,7 +277,7 @@ func (d *DiffEnum) Diff() (actions []patch.Action) {
 	if eq, p, n := compareAndCopyTags(d.Prev.GetTags(), d.Next.GetTags()); !eq {
 		actions = append(actions, &diff.EnumAction{patch.Change, d.Prev, "Tags", p, n})
 	}
-	{
+	if !d.ExcludeItems {
 		names := make(map[string]struct{}, len(d.Prev.Items))
 		for _, p := range d.Prev.Items {
 			names[p.GetName()] = struct{}{}
