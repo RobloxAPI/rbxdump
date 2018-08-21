@@ -60,16 +60,9 @@ func (a *ClassAction) GetNext() interface{}   { return a.Next }
 func (a *ClassAction) String() string {
 	switch a.Type {
 	case patch.Add, patch.Remove:
-		members := a.Class.GetMembers()
-		ms := make([]string, len(members)*2)
-		for _, member := range members {
-			ms = append(ms, "\n\t")
-			ms = append(ms, (&MemberAction{Type: a.Type, Class: a.Class, Member: member}).String())
-		}
 		return a.Type.String() +
 			" Class " + a.Class.GetName() +
-			tagsToString(a.Class.GetTags()) +
-			strings.Join(ms, "")
+			tagsToString(a.Class.GetTags())
 	case patch.Change:
 		return a.Type.String() +
 			" field " + a.Field +
@@ -135,16 +128,9 @@ func (a *EnumAction) GetNext() interface{} { return a.Next }
 func (a *EnumAction) String() string {
 	switch a.Type {
 	case patch.Add, patch.Remove:
-		items := a.Enum.GetItems()
-		is := make([]string, len(items)*2)
-		for _, item := range items {
-			is = append(is, "\n\t")
-			is = append(is, (&EnumItemAction{Type: a.Type, Enum: a.Enum, Item: item}).String())
-		}
 		return a.Type.String() +
 			" Enum " + a.Enum.GetName() +
-			tagsToString(a.Enum.GetTags()) +
-			strings.Join(is, "")
+			tagsToString(a.Enum.GetTags())
 	case patch.Change:
 		return a.Type.String() +
 			" field " + a.Field +
