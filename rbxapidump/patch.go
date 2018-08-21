@@ -122,53 +122,6 @@ func copyType(typ rbxapi.Type) Type {
 func (root *Root) Patch(actions []patch.Action) {
 	for _, action := range actions {
 		switch action := action.(type) {
-		case patch.Class:
-			aclass := action.GetClass()
-			if aclass == nil {
-				continue
-			}
-			switch action.GetType() {
-			case patch.Remove:
-				name := aclass.GetName()
-				for i, class := range root.Classes {
-					if class.Name == name {
-						copy(root.Classes[i:], root.Classes[i+1:])
-						root.Classes[len(root.Classes)-1] = nil
-						root.Classes = root.Classes[:len(root.Classes)-1]
-						break
-					}
-				}
-			case patch.Add:
-				root.Classes = append(root.Classes, copyClass(aclass))
-			case patch.Change:
-				var class *Class
-				{
-					name := aclass.GetName()
-					for _, c := range root.Classes {
-						if c.Name == name {
-							class = c
-							break
-						}
-					}
-				}
-				if class == nil {
-					continue
-				}
-				switch action.GetField() {
-				case "Name":
-					if v, ok := action.GetNext().(string); ok {
-						class.Name = v
-					}
-				case "Superclass":
-					if v, ok := action.GetNext().(string); ok {
-						class.Superclass = v
-					}
-				case "Tags":
-					if v, ok := action.GetNext().([]string); ok {
-						class.Tags = Tags(Tags(v).GetTags())
-					}
-				}
-			}
 		case patch.Member:
 			amember := action.GetMember()
 			if amember == nil {
@@ -308,46 +261,50 @@ func (root *Root) Patch(actions []patch.Action) {
 					}
 				}
 			}
-		case patch.Enum:
-			aenum := action.GetEnum()
-			if aenum == nil {
+		case patch.Class:
+			aclass := action.GetClass()
+			if aclass == nil {
 				continue
 			}
 			switch action.GetType() {
 			case patch.Remove:
-				name := aenum.GetName()
-				for i, enum := range root.Enums {
-					if enum.Name == name {
-						copy(root.Enums[i:], root.Enums[i+1:])
-						root.Enums[len(root.Enums)-1] = nil
-						root.Enums = root.Enums[:len(root.Enums)-1]
+				name := aclass.GetName()
+				for i, class := range root.Classes {
+					if class.Name == name {
+						copy(root.Classes[i:], root.Classes[i+1:])
+						root.Classes[len(root.Classes)-1] = nil
+						root.Classes = root.Classes[:len(root.Classes)-1]
 						break
 					}
 				}
 			case patch.Add:
-				root.Enums = append(root.Enums, copyEnum(aenum))
+				root.Classes = append(root.Classes, copyClass(aclass))
 			case patch.Change:
-				var enum *Enum
+				var class *Class
 				{
-					name := aenum.GetName()
-					for _, e := range root.Enums {
-						if e.Name == name {
-							enum = e
+					name := aclass.GetName()
+					for _, c := range root.Classes {
+						if c.Name == name {
+							class = c
 							break
 						}
 					}
 				}
-				if enum == nil {
+				if class == nil {
 					continue
 				}
 				switch action.GetField() {
 				case "Name":
 					if v, ok := action.GetNext().(string); ok {
-						enum.Name = v
+						class.Name = v
+					}
+				case "Superclass":
+					if v, ok := action.GetNext().(string); ok {
+						class.Superclass = v
 					}
 				case "Tags":
 					if v, ok := action.GetNext().([]string); ok {
-						enum.Tags = Tags(Tags(v).GetTags())
+						class.Tags = Tags(Tags(v).GetTags())
 					}
 				}
 			}
@@ -412,6 +369,49 @@ func (root *Root) Patch(actions []patch.Action) {
 				case "Tags":
 					if v, ok := action.GetNext().([]string); ok {
 						item.Tags = Tags(Tags(v).GetTags())
+					}
+				}
+			}
+		case patch.Enum:
+			aenum := action.GetEnum()
+			if aenum == nil {
+				continue
+			}
+			switch action.GetType() {
+			case patch.Remove:
+				name := aenum.GetName()
+				for i, enum := range root.Enums {
+					if enum.Name == name {
+						copy(root.Enums[i:], root.Enums[i+1:])
+						root.Enums[len(root.Enums)-1] = nil
+						root.Enums = root.Enums[:len(root.Enums)-1]
+						break
+					}
+				}
+			case patch.Add:
+				root.Enums = append(root.Enums, copyEnum(aenum))
+			case patch.Change:
+				var enum *Enum
+				{
+					name := aenum.GetName()
+					for _, e := range root.Enums {
+						if e.Name == name {
+							enum = e
+							break
+						}
+					}
+				}
+				if enum == nil {
+					continue
+				}
+				switch action.GetField() {
+				case "Name":
+					if v, ok := action.GetNext().(string); ok {
+						enum.Name = v
+					}
+				case "Tags":
+					if v, ok := action.GetNext().([]string); ok {
+						enum.Tags = Tags(Tags(v).GetTags())
 					}
 				}
 			}
