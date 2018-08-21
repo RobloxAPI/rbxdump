@@ -194,7 +194,7 @@ type Type interface {
 	GetCategory() string
 
 	// String returns a string representation of the entire type. The format
-	// of this thing is implementation-dependent.
+	// of this string is implementation-dependent.
 	String() string
 
 	// Copy returns a deep copy of the type.
