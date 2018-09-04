@@ -151,12 +151,12 @@ type EnumItemAction struct {
 	Next  interface{}
 }
 
-func (a *EnumItemAction) GetEnum() rbxapi.Enum         { return a.Enum }
-func (a *EnumItemAction) GetEnumItem() rbxapi.EnumItem { return a.Item }
-func (a *EnumItemAction) GetType() patch.Type          { return a.Type }
-func (a *EnumItemAction) GetField() string             { return a.Field }
-func (a *EnumItemAction) GetPrev() interface{}         { return a.Prev }
-func (a *EnumItemAction) GetNext() interface{}         { return a.Next }
+func (a *EnumItemAction) GetEnum() rbxapi.Enum     { return a.Enum }
+func (a *EnumItemAction) GetItem() rbxapi.EnumItem { return a.Item }
+func (a *EnumItemAction) GetType() patch.Type      { return a.Type }
+func (a *EnumItemAction) GetField() string         { return a.Field }
+func (a *EnumItemAction) GetPrev() interface{}     { return a.Prev }
+func (a *EnumItemAction) GetNext() interface{}     { return a.Next }
 func (a *EnumItemAction) String() string {
 	var enum string
 	if a.Enum != nil {
