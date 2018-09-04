@@ -31,7 +31,18 @@ neq:
 func compareAndCopyParameters(prev, next []rbxapi.Parameter) (eq bool, p, n []rbxapi.Parameter) {
 	if len(prev) != len(next) {
 		for i, s := range prev {
-			if next[i] != s {
+			if next[i].GetType() != s.GetType() {
+				goto neq
+			}
+			if next[i].GetName() != s.GetName() {
+				goto neq
+			}
+			nd, nk := next[i].GetDefault()
+			pd, pk := s.GetDefault()
+			if nk != pk {
+				goto neq
+			}
+			if nk && nd != pd {
 				goto neq
 			}
 		}
@@ -42,7 +53,7 @@ neq:
 	n = make([]rbxapi.Parameter, len(next))
 	copy(p, prev)
 	copy(n, next)
-	return true, p, n
+	return false, p, n
 }
 
 // Diff is a patch.Differ that finds differences between two rbxapi.Root

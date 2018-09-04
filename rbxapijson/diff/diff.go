@@ -31,9 +31,13 @@ neq:
 // compareAndCopyParameters compares two parameter slices, and return copies
 // if they are not equal.
 func compareAndCopyParameters(prev, next []rbxapijson.Parameter) (eq bool, p, n []rbxapi.Parameter) {
-	if len(prev) != len(next) {
+	if len(prev) == len(next) {
 		for i, s := range prev {
-			if next[i] != s {
+			switch {
+			case next[i].Type != s.Type,
+				next[i].Name != s.Name,
+				(next[i].Default == nil) != (s.Default == nil),
+				next[i].Default != nil && *next[i].Default != *s.Default:
 				goto neq
 			}
 		}
@@ -48,7 +52,7 @@ neq:
 	for i := range next {
 		n[i] = next[i]
 	}
-	return true, p, n
+	return false, p, n
 }
 
 // Diff is a patch.Differ that finds differences between two Root values.
