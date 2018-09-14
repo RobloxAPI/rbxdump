@@ -483,8 +483,10 @@ func (param Parameter) GetDefault() (value string, ok bool) {
 // Copy implements the rbxapi.Parameter interface.
 func (param Parameter) Copy() rbxapi.Parameter {
 	cparam := param
-	d := *param.Default
-	cparam.Default = &d
+	if param.Default != nil {
+		d := *param.Default
+		cparam.Default = &d
+	}
 	return cparam
 }
 
