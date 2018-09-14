@@ -137,18 +137,6 @@ func (e *encoder) encodeClass(class *Class) {
 	}
 }
 
-func (e *encoder) checkMemberClass(memberClass, class string) bool {
-	e.checkChars(isName, true, memberClass, "Member.Class")
-	if e.err != nil {
-		return false
-	}
-	if memberClass != class {
-		e.setError("member class does not match parent class")
-		return false
-	}
-	return true
-}
-
 func (e *encoder) encodeMember(class *Class, member rbxapi.Member) {
 	e.checkChars(isName, true, member.GetName(), "Member.Name")
 	e.writeString(e.prefix)
@@ -157,51 +145,46 @@ func (e *encoder) encodeMember(class *Class, member rbxapi.Member) {
 	switch member := member.(type) {
 	case *Property:
 		e.writeString("Property ")
-		e.checkMemberClass(member.Class, class.Name)
 		e.checkChars(isName, true, member.ValueType.String(), "Property.ValueType")
 		e.writeString(member.ValueType.String())
 		e.writeString(" ")
-		e.writeString(member.Class)
+		e.writeString(class.Name)
 		e.writeString(".")
 		e.writeString(member.Name)
 		e.encodeTags(member.Tags)
 	case *Function:
 		e.writeString("Function ")
-		e.checkMemberClass(member.Class, class.Name)
 		e.checkChars(isName, true, member.ReturnType.String(), "Function.ReturnType")
 		e.writeString(member.ReturnType.String())
 		e.writeString(" ")
-		e.writeString(member.Class)
+		e.writeString(class.Name)
 		e.writeString(":")
 		e.writeString(member.Name)
 		e.encodeParameters(member.Parameters, true)
 		e.encodeTags(member.Tags)
 	case *YieldFunction:
 		e.writeString("YieldFunction ")
-		e.checkMemberClass(member.Class, class.Name)
 		e.checkChars(isName, true, member.ReturnType.String(), "YieldFunction.ReturnType")
 		e.writeString(member.ReturnType.String())
 		e.writeString(" ")
-		e.writeString(member.Class)
+		e.writeString(class.Name)
 		e.writeString(":")
 		e.writeString(member.Name)
 		e.encodeParameters(member.Parameters, true)
 		e.encodeTags(member.Tags)
 	case *Event:
 		e.writeString("Event ")
-		e.checkMemberClass(member.Class, class.Name)
-		e.writeString(member.Class)
+		e.writeString(class.Name)
 		e.writeString(".")
 		e.writeString(member.Name)
 		e.encodeParameters(member.Parameters, false)
 		e.encodeTags(member.Tags)
 	case *Callback:
 		e.writeString("Callback ")
-		e.checkMemberClass(member.Class, class.Name)
 		e.checkChars(isName, true, member.ReturnType.String(), "Callback.ReturnType")
 		e.writeString(member.ReturnType.String())
 		e.writeString(" ")
-		e.writeString(member.Class)
+		e.writeString(class.Name)
 		e.writeString(".")
 		e.writeString(member.Name)
 		e.encodeParameters(member.Parameters, false)
@@ -261,15 +244,10 @@ func (e *encoder) encodeEnum(enum *Enum) {
 
 func (e *encoder) encodeEnumItem(enum *Enum, item *EnumItem) {
 	e.checkChars(isName, true, item.Name, "EnumItem.Name")
-	e.checkChars(isName, true, item.Enum, "EnumItem.Enum")
-	if item.Enum != enum.Name {
-		e.setError("enum item enum does not match parent enum")
-		return
-	}
 	e.writeString(e.prefix)
 	e.writeString(e.indent)
 	e.writeString("EnumItem ")
-	e.writeString(item.Enum)
+	e.writeString(enum.Name)
 	e.writeString(".")
 	e.writeString(item.Name)
 	e.writeString(" : ")
