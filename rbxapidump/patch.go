@@ -209,6 +209,10 @@ func (root *Root) Patch(actions []patch.Action) {
 							member.Parameters = make([]Parameter, len(v))
 							for i, param := range v {
 								member.Parameters[i].Type.SetFromType(param.GetType())
+								member.Parameters[i].Name = param.GetName()
+								if d, ok := param.GetDefault(); ok {
+									member.Parameters[i].Default = &d
+								}
 							}
 						}
 					case "Tags":
@@ -227,6 +231,10 @@ func (root *Root) Patch(actions []patch.Action) {
 							member.Parameters = make([]Parameter, len(v))
 							for i, param := range v {
 								member.Parameters[i].Type.SetFromType(param.GetType())
+								member.Parameters[i].Name = param.GetName()
+								if d, ok := param.GetDefault(); ok {
+									member.Parameters[i].Default = &d
+								}
 							}
 						}
 					case "Tags":
@@ -252,6 +260,10 @@ func (root *Root) Patch(actions []patch.Action) {
 							member.Parameters = make([]Parameter, len(v))
 							for i, param := range v {
 								member.Parameters[i].Type.SetFromType(param.GetType())
+								member.Parameters[i].Name = param.GetName()
+								if d, ok := param.GetDefault(); ok {
+									member.Parameters[i].Default = &d
+								}
 							}
 						}
 					case "Tags":

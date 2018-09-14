@@ -241,6 +241,10 @@ func (root *Root) Patch(actions []patch.Action) {
 								t := param.GetType()
 								member.Parameters[i].Type.Category = t.GetCategory()
 								member.Parameters[i].Type.Name = t.GetName()
+								member.Parameters[i].Name = param.GetName()
+								if d, ok := param.GetDefault(); ok {
+									member.Parameters[i].Default = &d
+								}
 							}
 						}
 					case "ReturnType":
@@ -272,6 +276,10 @@ func (root *Root) Patch(actions []patch.Action) {
 								t := param.GetType()
 								member.Parameters[i].Type.Category = t.GetCategory()
 								member.Parameters[i].Type.Name = t.GetName()
+								member.Parameters[i].Name = param.GetName()
+								if d, ok := param.GetDefault(); ok {
+									member.Parameters[i].Default = &d
+								}
 							}
 						}
 					case "Security":
@@ -296,6 +304,10 @@ func (root *Root) Patch(actions []patch.Action) {
 								t := param.GetType()
 								member.Parameters[i].Type.Category = t.GetCategory()
 								member.Parameters[i].Type.Name = t.GetName()
+								member.Parameters[i].Name = param.GetName()
+								if d, ok := param.GetDefault(); ok {
+									member.Parameters[i].Default = &d
+								}
 							}
 						}
 					case "ReturnType":
