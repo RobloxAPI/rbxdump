@@ -272,7 +272,7 @@ func (d *decoder) addEnumItem(item *EnumItem) {
 	if d.err != nil {
 		return
 	}
-	d.enum.Items = append(d.enum.Items, item)
+	d.enum.EnumItems = append(d.enum.EnumItems, item)
 }
 
 func (d *decoder) decode() error {

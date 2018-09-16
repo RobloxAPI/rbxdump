@@ -146,13 +146,13 @@ type Enum interface {
 	// GetName returns the name of the enum.
 	GetName() string
 
-	// GetItems returns a list of items of the enum. Items in the list must
-	// have a consistent order.
-	GetItems() []EnumItem
+	// GetEnumItems returns a list of items of the enum. Items in the list
+	// must have a consistent order.
+	GetEnumItems() []EnumItem
 
-	// GetItem returns the first item of the given name, or nil if no item of
-	// the given name is present.
-	GetItem(name string) EnumItem
+	// GetEnumItem returns the first item of the given name, or nil if no item
+	// of the given name is present.
+	GetEnumItem(name string) EnumItem
 
 	// Copy returns a deep copy of the enum descriptor.
 	Copy() Enum

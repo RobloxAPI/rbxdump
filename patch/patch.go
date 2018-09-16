@@ -115,9 +115,9 @@ type EnumItem interface {
 	// GetEnum returns the enum associated with the action. The enum is meant
 	// to be used only for context.
 	GetEnum() rbxapi.Enum
-	// GetItem returns the enum item associated with the action. When adding
-	// or removing, this is the item being added or removed. When changing,
-	// the item is meant to be used only for context.
-	GetItem() rbxapi.EnumItem
+	// GetEnumItem returns the enum item associated with the action. When
+	// adding or removing, this is the item being added or removed. When
+	// changing, the item is meant to be used only for context.
+	GetEnumItem() rbxapi.EnumItem
 	Action
 }

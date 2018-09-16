@@ -71,16 +71,16 @@ func copyMember(member rbxapi.Member) rbxapi.Member {
 
 // copyEnum returns a deep copy of a generic rbxapi.Enum.
 func copyEnum(enum rbxapi.Enum) *Enum {
-	items := enum.GetItems()
+	items := enum.GetEnumItems()
 	e := Enum{
-		Name:  enum.GetName(),
-		Items: make([]*EnumItem, 0, len(items)),
-		Tags:  Tags(enum.GetTags()),
+		Name:      enum.GetName(),
+		EnumItems: make([]*EnumItem, 0, len(items)),
+		Tags:      Tags(enum.GetTags()),
 	}
 	for _, item := range items {
 		if item := copyEnumItem(item); item != nil {
 			item.Enum = enum.GetName()
-			e.Items = append(e.Items, item)
+			e.EnumItems = append(e.EnumItems, item)
 		}
 	}
 	return &e
@@ -321,7 +321,7 @@ func (root *Root) Patch(actions []patch.Action) {
 				}
 			}
 		case patch.EnumItem:
-			aitem := action.GetItem()
+			aitem := action.GetEnumItem()
 			if aitem == nil {
 				continue
 			}
@@ -345,21 +345,21 @@ func (root *Root) Patch(actions []patch.Action) {
 			switch action.GetType() {
 			case patch.Remove:
 				name := aitem.GetName()
-				for i, item := range enum.Items {
+				for i, item := range enum.EnumItems {
 					if item.GetName() == name {
-						copy(enum.Items[i:], enum.Items[i+1:])
-						enum.Items[len(enum.Items)-1] = nil
-						enum.Items = enum.Items[:len(enum.Items)-1]
+						copy(enum.EnumItems[i:], enum.EnumItems[i+1:])
+						enum.EnumItems[len(enum.EnumItems)-1] = nil
+						enum.EnumItems = enum.EnumItems[:len(enum.EnumItems)-1]
 						break
 					}
 				}
 			case patch.Add:
-				enum.Items = append(enum.Items, copyEnumItem(aitem))
+				enum.EnumItems = append(enum.EnumItems, copyEnumItem(aitem))
 			case patch.Change:
 				var item *EnumItem
 				{
 					name := aitem.GetName()
-					for _, i := range enum.Items {
+					for _, i := range enum.EnumItems {
 						if i.GetName() == name {
 							item = i
 							break

@@ -339,8 +339,8 @@ func (d *DiffCallback) Diff() (actions []patch.Action) {
 // Diff is a patch.Differ that finds differences between two Enum values.
 type DiffEnum struct {
 	Prev, Next *rbxapijson.Enum
-	// ExcludeItems indicates whether enum items should be diffed.
-	ExcludeItems bool
+	// ExcludeEnumItems indicates whether enum items should be diffed.
+	ExcludeEnumItems bool
 }
 
 func (d *DiffEnum) Diff() (actions []patch.Action) {
@@ -359,20 +359,20 @@ func (d *DiffEnum) Diff() (actions []patch.Action) {
 	if eq, p, n := compareAndCopyTags(d.Prev.GetTags(), d.Next.GetTags()); !eq {
 		actions = append(actions, &diff.EnumAction{patch.Change, d.Prev, "Tags", p, n})
 	}
-	if !d.ExcludeItems {
-		names := make(map[string]struct{}, len(d.Prev.Items))
-		for _, p := range d.Prev.Items {
+	if !d.ExcludeEnumItems {
+		names := make(map[string]struct{}, len(d.Prev.EnumItems))
+		for _, p := range d.Prev.EnumItems {
 			names[p.GetName()] = struct{}{}
-			n, _ := d.Next.GetItem(p.GetName()).(*rbxapijson.EnumItem)
+			n, _ := d.Next.GetEnumItem(p.GetName()).(*rbxapijson.EnumItem)
 			if n == nil {
-				actions = append(actions, &diff.EnumItemAction{Type: patch.Remove, Enum: d.Prev, Item: p})
+				actions = append(actions, &diff.EnumItemAction{Type: patch.Remove, Enum: d.Prev, EnumItem: p})
 				continue
 			}
 			actions = append(actions, (&DiffEnumItem{d.Prev, p, n}).Diff()...)
 		}
-		for _, n := range d.Next.Items {
+		for _, n := range d.Next.EnumItems {
 			if _, ok := names[n.GetName()]; !ok {
-				actions = append(actions, &diff.EnumItemAction{Type: patch.Add, Enum: d.Prev, Item: n})
+				actions = append(actions, &diff.EnumItemAction{Type: patch.Add, Enum: d.Prev, EnumItem: n})
 			}
 		}
 	}
@@ -389,10 +389,10 @@ func (d *DiffEnumItem) Diff() (actions []patch.Action) {
 	if d.Prev == nil && d.Next == nil {
 		return
 	} else if d.Prev == nil {
-		actions = append(actions, &diff.EnumItemAction{Type: patch.Add, Enum: d.Enum, Item: d.Next})
+		actions = append(actions, &diff.EnumItemAction{Type: patch.Add, Enum: d.Enum, EnumItem: d.Next})
 		return
 	} else if d.Next == nil {
-		actions = append(actions, &diff.EnumItemAction{Type: patch.Remove, Enum: d.Enum, Item: d.Prev})
+		actions = append(actions, &diff.EnumItemAction{Type: patch.Remove, Enum: d.Enum, EnumItem: d.Prev})
 		return
 	}
 	if d.Prev.Name != d.Next.Name {

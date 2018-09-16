@@ -143,20 +143,20 @@ func (a *EnumAction) String() string {
 
 // EnumItemAction represents a patch.Action that applies to a rbxapi.EnumItem.
 type EnumItemAction struct {
-	Type  patch.Type
-	Enum  rbxapi.Enum
-	Item  rbxapi.EnumItem
-	Field string
-	Prev  interface{}
-	Next  interface{}
+	Type     patch.Type
+	Enum     rbxapi.Enum
+	EnumItem rbxapi.EnumItem
+	Field    string
+	Prev     interface{}
+	Next     interface{}
 }
 
-func (a *EnumItemAction) GetEnum() rbxapi.Enum     { return a.Enum }
-func (a *EnumItemAction) GetItem() rbxapi.EnumItem { return a.Item }
-func (a *EnumItemAction) GetType() patch.Type      { return a.Type }
-func (a *EnumItemAction) GetField() string         { return a.Field }
-func (a *EnumItemAction) GetPrev() interface{}     { return a.Prev }
-func (a *EnumItemAction) GetNext() interface{}     { return a.Next }
+func (a *EnumItemAction) GetEnum() rbxapi.Enum         { return a.Enum }
+func (a *EnumItemAction) GetEnumItem() rbxapi.EnumItem { return a.EnumItem }
+func (a *EnumItemAction) GetType() patch.Type          { return a.Type }
+func (a *EnumItemAction) GetField() string             { return a.Field }
+func (a *EnumItemAction) GetPrev() interface{}         { return a.Prev }
+func (a *EnumItemAction) GetNext() interface{}         { return a.Next }
 func (a *EnumItemAction) String() string {
 	var enum string
 	if a.Enum != nil {
@@ -165,12 +165,12 @@ func (a *EnumItemAction) String() string {
 	switch a.Type {
 	case patch.Add, patch.Remove:
 		return a.Type.String() +
-			" EnumItem " + enum + a.Item.GetName() +
-			tagsToString(a.Item.GetTags())
+			" EnumItem " + enum + a.EnumItem.GetName() +
+			tagsToString(a.EnumItem.GetTags())
 	case patch.Change:
 		return a.Type.String() +
 			" field " + a.Field +
-			" of EnumItem " + enum + a.Item.GetName() +
+			" of EnumItem " + enum + a.EnumItem.GetName() +
 			" from " + toString(a.Prev) +
 			" to " + toString(a.Next)
 	}

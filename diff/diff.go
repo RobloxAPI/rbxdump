@@ -358,8 +358,8 @@ func (d *DiffCallback) Diff() (actions []patch.Action) {
 // values.
 type DiffEnum struct {
 	Prev, Next rbxapi.Enum
-	// ExcludeItems indicates whether enum items should be diffed.
-	ExcludeItems bool
+	// ExcludeEnumItems indicates whether enum items should be diffed.
+	ExcludeEnumItems bool
 }
 
 // Diff implements the patch.Differ interface.
@@ -379,21 +379,21 @@ func (d *DiffEnum) Diff() (actions []patch.Action) {
 	if eq, p, n := compareAndCopyTags(d.Prev.GetTags(), d.Next.GetTags()); !eq {
 		actions = append(actions, &EnumAction{patch.Change, d.Prev, "Tags", p, n})
 	}
-	if !d.ExcludeItems {
-		items := d.Prev.GetItems()
+	if !d.ExcludeEnumItems {
+		items := d.Prev.GetEnumItems()
 		names := make(map[string]struct{}, len(items))
 		for _, p := range items {
 			names[p.GetName()] = struct{}{}
-			n := d.Next.GetItem(p.GetName())
+			n := d.Next.GetEnumItem(p.GetName())
 			if n == nil {
-				actions = append(actions, &EnumItemAction{Type: patch.Remove, Enum: d.Prev, Item: p})
+				actions = append(actions, &EnumItemAction{Type: patch.Remove, Enum: d.Prev, EnumItem: p})
 				continue
 			}
 			actions = append(actions, (&DiffEnumItem{d.Prev, p, n}).Diff()...)
 		}
-		for _, n := range d.Next.GetItems() {
+		for _, n := range d.Next.GetEnumItems() {
 			if _, ok := names[n.GetName()]; !ok {
-				actions = append(actions, &EnumItemAction{Type: patch.Add, Enum: d.Prev, Item: n})
+				actions = append(actions, &EnumItemAction{Type: patch.Add, Enum: d.Prev, EnumItem: n})
 			}
 		}
 	}
@@ -413,10 +413,10 @@ func (d *DiffEnumItem) Diff() (actions []patch.Action) {
 	if d.Prev == nil && d.Next == nil {
 		return
 	} else if d.Prev == nil {
-		actions = append(actions, &EnumItemAction{Type: patch.Add, Enum: d.Enum, Item: d.Next})
+		actions = append(actions, &EnumItemAction{Type: patch.Add, Enum: d.Enum, EnumItem: d.Next})
 		return
 	} else if d.Next == nil {
-		actions = append(actions, &EnumItemAction{Type: patch.Remove, Enum: d.Enum, Item: d.Prev})
+		actions = append(actions, &EnumItemAction{Type: patch.Remove, Enum: d.Enum, EnumItem: d.Prev})
 		return
 	}
 	if p, n := (d.Prev.GetName()), d.Next.GetName(); p != n {
