@@ -224,7 +224,9 @@ func (class *Class) Patch(actions []patch.Action) {
 					}
 				}
 			case patch.Add:
-				class.Members = append(class.Members, copyMember(amember))
+				if member := copyMember(amember); member != nil {
+					class.Members = append(class.Members, member)
+				}
 			case patch.Change:
 				name := amember.GetName()
 				mtype := amember.GetMemberType()
