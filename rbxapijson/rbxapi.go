@@ -412,9 +412,9 @@ func (param Parameter) Copy() rbxapi.Parameter {
 
 // Enum represents an enum descriptor.
 type Enum struct {
-	Name      string
-	EnumItems []*EnumItem
-	Tags      `json:",omitempty"`
+	Name  string
+	Items []*EnumItem
+	Tags  `json:",omitempty"`
 }
 
 // GetName returns the name of the enum.
@@ -428,8 +428,8 @@ func (enum *Enum) GetName() string {
 //
 // GetEnumItems implements the rbxapi.Enum interface.
 func (enum *Enum) GetEnumItems() []rbxapi.EnumItem {
-	list := make([]rbxapi.EnumItem, len(enum.EnumItems))
-	for i, item := range enum.EnumItems {
+	list := make([]rbxapi.EnumItem, len(enum.Items))
+	for i, item := range enum.Items {
 		list[i] = item
 	}
 	return list
@@ -440,7 +440,7 @@ func (enum *Enum) GetEnumItems() []rbxapi.EnumItem {
 //
 // GetEnumItem implements the rbxapi.Enum interface.
 func (enum *Enum) GetEnumItem(name string) rbxapi.EnumItem {
-	for _, item := range enum.EnumItems {
+	for _, item := range enum.Items {
 		if item.GetName() == name {
 			return item
 		}
@@ -453,9 +453,9 @@ func (enum *Enum) GetEnumItem(name string) rbxapi.EnumItem {
 // Copy implements the rbxapi.Enum interface.
 func (enum *Enum) Copy() rbxapi.Enum {
 	cenum := *enum
-	cenum.EnumItems = make([]*EnumItem, len(enum.EnumItems))
-	for i, item := range enum.EnumItems {
-		cenum.EnumItems[i] = item.Copy().(*EnumItem)
+	cenum.Items = make([]*EnumItem, len(enum.Items))
+	for i, item := range enum.Items {
+		cenum.Items[i] = item.Copy().(*EnumItem)
 	}
 	cenum.Tags = Tags(enum.GetTags())
 	return &cenum

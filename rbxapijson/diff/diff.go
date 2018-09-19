@@ -360,8 +360,8 @@ func (d *DiffEnum) Diff() (actions []patch.Action) {
 		actions = append(actions, &diff.EnumAction{patch.Change, d.Prev, "Tags", p, n})
 	}
 	if !d.ExcludeEnumItems {
-		names := make(map[string]struct{}, len(d.Prev.EnumItems))
-		for _, p := range d.Prev.EnumItems {
+		names := make(map[string]struct{}, len(d.Prev.Items))
+		for _, p := range d.Prev.Items {
 			names[p.GetName()] = struct{}{}
 			n, _ := d.Next.GetEnumItem(p.GetName()).(*rbxapijson.EnumItem)
 			if n == nil {
@@ -370,7 +370,7 @@ func (d *DiffEnum) Diff() (actions []patch.Action) {
 			}
 			actions = append(actions, (&DiffEnumItem{d.Prev, p, n}).Diff()...)
 		}
-		for _, n := range d.Next.EnumItems {
+		for _, n := range d.Next.Items {
 			if _, ok := names[n.GetName()]; !ok {
 				actions = append(actions, &diff.EnumItemAction{Type: patch.Add, Enum: d.Prev, EnumItem: n})
 			}

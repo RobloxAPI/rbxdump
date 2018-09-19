@@ -81,13 +81,13 @@ func copyEnum(enum rbxapi.Enum) *Enum {
 	}
 	items := enum.GetEnumItems()
 	e := Enum{
-		Name:      enum.GetName(),
-		EnumItems: make([]*EnumItem, 0, len(items)),
-		Tags:      Tags(enum.GetTags()),
+		Name:  enum.GetName(),
+		Items: make([]*EnumItem, 0, len(items)),
+		Tags:  Tags(enum.GetTags()),
 	}
 	for _, item := range items {
 		if item := copyEnumItem(item); item != nil {
-			e.EnumItems = append(e.EnumItems, item)
+			e.Items = append(e.Items, item)
 		}
 	}
 	return &e
@@ -457,19 +457,19 @@ func (enum *Enum) Patch(actions []patch.Action) {
 			switch action.GetType() {
 			case patch.Remove:
 				name := aitem.GetName()
-				for i, item := range enum.EnumItems {
+				for i, item := range enum.Items {
 					if item.GetName() == name {
-						copy(enum.EnumItems[i:], enum.EnumItems[i+1:])
-						enum.EnumItems[len(enum.EnumItems)-1] = nil
-						enum.EnumItems = enum.EnumItems[:len(enum.EnumItems)-1]
+						copy(enum.Items[i:], enum.Items[i+1:])
+						enum.Items[len(enum.Items)-1] = nil
+						enum.Items = enum.Items[:len(enum.Items)-1]
 						break
 					}
 				}
 			case patch.Add:
-				enum.EnumItems = append(enum.EnumItems, copyEnumItem(aitem))
+				enum.Items = append(enum.Items, copyEnumItem(aitem))
 			case patch.Change:
 				name := aitem.GetName()
-				for _, item := range enum.EnumItems {
+				for _, item := range enum.Items {
 					if item.GetName() == name {
 						item.Patch(actions[i : i+1])
 						break

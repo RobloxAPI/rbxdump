@@ -234,7 +234,7 @@ func (e *encoder) encodeEnum(enum *Enum) {
 	e.encodeTags(enum.Tags)
 	e.writeString(e.line)
 
-	for _, item := range enum.EnumItems {
+	for _, item := range enum.Items {
 		e.encodeEnumItem(enum, item)
 		if e.err != nil {
 			return
