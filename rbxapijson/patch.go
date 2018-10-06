@@ -138,38 +138,8 @@ func typeFromString(s string) Type {
 // Patch implements the patch.Patcher interface.
 func (root *Root) Patch(actions []patch.Action) {
 	for i, action := range actions {
-		switch action := action.(type) {
-		case patch.Member:
-			aclass := action.GetClass()
-			if aclass == nil {
-				continue
-			}
-			name := aclass.GetName()
-			for _, class := range root.Classes {
-				if class.Name == name {
-					class.Patch(actions[i : i+1])
-					break
-				}
-			}
-		case patch.Class:
-			aclass := action.GetClass()
-			if aclass == nil {
-				continue
-			}
-			switch action.GetType() {
-			case patch.Remove:
-				name := aclass.GetName()
-				for i, class := range root.Classes {
-					if class.Name == name {
-						copy(root.Classes[i:], root.Classes[i+1:])
-						root.Classes[len(root.Classes)-1] = nil
-						root.Classes = root.Classes[:len(root.Classes)-1]
-						break
-					}
-				}
-			case patch.Add:
-				root.Classes = append(root.Classes, copyClass(aclass))
-			case patch.Change:
+		if action, ok := action.(patch.Member); ok {
+			if aclass, amember := (action.GetClass()), (action.GetMember()); aclass != nil && amember != nil {
 				name := aclass.GetName()
 				for _, class := range root.Classes {
 					if class.Name == name {
@@ -177,38 +147,38 @@ func (root *Root) Patch(actions []patch.Action) {
 						break
 					}
 				}
-			}
-		case patch.EnumItem:
-			aenum := action.GetEnum()
-			if aenum == nil {
 				continue
 			}
-			name := aenum.GetName()
-			for _, enum := range root.Enums {
-				if enum.Name == name {
-					enum.Patch(actions[i : i+1])
-					break
-				}
-			}
-		case patch.Enum:
-			aenum := action.GetEnum()
-			if aenum == nil {
-				continue
-			}
-			switch action.GetType() {
-			case patch.Remove:
-				name := aenum.GetName()
-				for i, enum := range root.Enums {
-					if enum.Name == name {
-						copy(root.Enums[i:], root.Enums[i+1:])
-						root.Enums[len(root.Enums)-1] = nil
-						root.Enums = root.Enums[:len(root.Enums)-1]
-						break
+		}
+		if action, ok := action.(patch.Class); ok {
+			if aclass := action.GetClass(); aclass != nil {
+				switch action.GetType() {
+				case patch.Remove:
+					name := aclass.GetName()
+					for i, class := range root.Classes {
+						if class.Name == name {
+							copy(root.Classes[i:], root.Classes[i+1:])
+							root.Classes[len(root.Classes)-1] = nil
+							root.Classes = root.Classes[:len(root.Classes)-1]
+							break
+						}
+					}
+				case patch.Add:
+					root.Classes = append(root.Classes, copyClass(aclass))
+				case patch.Change:
+					name := aclass.GetName()
+					for _, class := range root.Classes {
+						if class.Name == name {
+							class.Patch(actions[i : i+1])
+							break
+						}
 					}
 				}
-			case patch.Add:
-				root.Enums = append(root.Enums, copyEnum(aenum))
-			case patch.Change:
+				continue
+			}
+		}
+		if action, ok := action.(patch.EnumItem); ok {
+			if aenum, aitem := (action.GetEnum()), (action.GetEnumItem()); aenum != nil && aitem != nil {
 				name := aenum.GetName()
 				for _, enum := range root.Enums {
 					if enum.Name == name {
@@ -216,6 +186,34 @@ func (root *Root) Patch(actions []patch.Action) {
 						break
 					}
 				}
+				continue
+			}
+		}
+		if action, ok := action.(patch.Enum); ok {
+			if aenum := action.GetEnum(); aenum == nil {
+				switch action.GetType() {
+				case patch.Remove:
+					name := aenum.GetName()
+					for i, enum := range root.Enums {
+						if enum.Name == name {
+							copy(root.Enums[i:], root.Enums[i+1:])
+							root.Enums[len(root.Enums)-1] = nil
+							root.Enums = root.Enums[:len(root.Enums)-1]
+							break
+						}
+					}
+				case patch.Add:
+					root.Enums = append(root.Enums, copyEnum(aenum))
+				case patch.Change:
+					name := aenum.GetName()
+					for _, enum := range root.Enums {
+						if enum.Name == name {
+							enum.Patch(actions[i : i+1])
+							break
+						}
+					}
+				}
+				continue
 			}
 		}
 	}
@@ -223,40 +221,39 @@ func (root *Root) Patch(actions []patch.Action) {
 
 func (class *Class) Patch(actions []patch.Action) {
 	for i, action := range actions {
-		switch action := action.(type) {
-		case patch.Member:
-			amember := action.GetMember()
-			if amember == nil {
+		if action, ok := action.(patch.Member); ok {
+			if amember := action.GetMember(); amember != nil {
+				switch action.GetType() {
+				case patch.Remove:
+					name := amember.GetName()
+					for i, member := range class.Members {
+						if member.GetName() == name {
+							copy(class.Members[i:], class.Members[i+1:])
+							class.Members[len(class.Members)-1] = nil
+							class.Members = class.Members[:len(class.Members)-1]
+							break
+						}
+					}
+				case patch.Add:
+					if member := copyMember(amember); member != nil {
+						class.Members = append(class.Members, member)
+					}
+				case patch.Change:
+					name := amember.GetName()
+					mtype := amember.GetMemberType()
+					for _, member := range class.Members {
+						if member.GetName() == name && member.GetMemberType() == mtype {
+							if member, ok := member.(patch.Patcher); ok {
+								member.Patch(actions[i : i+1])
+							}
+							break
+						}
+					}
+				}
 				continue
 			}
-			switch action.GetType() {
-			case patch.Remove:
-				name := amember.GetName()
-				for i, member := range class.Members {
-					if member.GetName() == name {
-						copy(class.Members[i:], class.Members[i+1:])
-						class.Members[len(class.Members)-1] = nil
-						class.Members = class.Members[:len(class.Members)-1]
-						break
-					}
-				}
-			case patch.Add:
-				if member := copyMember(amember); member != nil {
-					class.Members = append(class.Members, member)
-				}
-			case patch.Change:
-				name := amember.GetName()
-				mtype := amember.GetMemberType()
-				for _, member := range class.Members {
-					if member.GetName() == name && member.GetMemberType() == mtype {
-						if member, ok := member.(patch.Patcher); ok {
-							member.Patch(actions[i : i+1])
-						}
-						break
-					}
-				}
-			}
-		case patch.Class:
+		}
+		if action, ok := action.(patch.Class); ok {
 			if action.GetType() != patch.Change {
 				continue
 			}
@@ -448,35 +445,34 @@ func (member *Callback) Patch(actions []patch.Action) {
 
 func (enum *Enum) Patch(actions []patch.Action) {
 	for i, action := range actions {
-		switch action := action.(type) {
-		case patch.EnumItem:
-			aitem := action.GetEnumItem()
-			if aitem == nil {
+		if action, ok := action.(patch.EnumItem); ok {
+			if aitem := action.GetEnumItem(); aitem != nil {
+				switch action.GetType() {
+				case patch.Remove:
+					name := aitem.GetName()
+					for i, item := range enum.Items {
+						if item.GetName() == name {
+							copy(enum.Items[i:], enum.Items[i+1:])
+							enum.Items[len(enum.Items)-1] = nil
+							enum.Items = enum.Items[:len(enum.Items)-1]
+							break
+						}
+					}
+				case patch.Add:
+					enum.Items = append(enum.Items, copyEnumItem(aitem))
+				case patch.Change:
+					name := aitem.GetName()
+					for _, item := range enum.Items {
+						if item.GetName() == name {
+							item.Patch(actions[i : i+1])
+							break
+						}
+					}
+				}
 				continue
 			}
-			switch action.GetType() {
-			case patch.Remove:
-				name := aitem.GetName()
-				for i, item := range enum.Items {
-					if item.GetName() == name {
-						copy(enum.Items[i:], enum.Items[i+1:])
-						enum.Items[len(enum.Items)-1] = nil
-						enum.Items = enum.Items[:len(enum.Items)-1]
-						break
-					}
-				}
-			case patch.Add:
-				enum.Items = append(enum.Items, copyEnumItem(aitem))
-			case patch.Change:
-				name := aitem.GetName()
-				for _, item := range enum.Items {
-					if item.GetName() == name {
-						item.Patch(actions[i : i+1])
-						break
-					}
-				}
-			}
-		case patch.Enum:
+		}
+		if action, ok := action.(patch.Enum); ok {
 			if action.GetType() != patch.Change {
 				continue
 			}
