@@ -208,7 +208,7 @@ func (e *encoder) encodeParameters(params []Parameter, canDefault bool) {
 }
 
 func (e *encoder) encodeParameter(param Parameter, canDefault bool) {
-	if !canDefault && param.Default != nil {
+	if !canDefault && param.HasDefault {
 		e.setError("member cannot have default argument")
 		return
 	}
@@ -218,10 +218,10 @@ func (e *encoder) encodeParameter(param Parameter, canDefault bool) {
 	e.writeString(param.Type.String())
 	e.writeString(" ")
 	e.writeString(param.Name)
-	if param.Default != nil {
-		e.checkChars(isDefault, false, *param.Default, "Argument.Default")
+	if param.HasDefault {
+		e.checkChars(isDefault, false, param.Default, "Argument.Default")
 		e.writeString(" = ")
-		e.writeString(*param.Default)
+		e.writeString(param.Default)
 	}
 }
 

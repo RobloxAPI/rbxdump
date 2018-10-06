@@ -240,9 +240,7 @@ func (member *Function) GetName() string {
 func (member *Function) Copy() rbxapi.Member {
 	cmember := *member
 	cmember.Parameters = make([]Parameter, len(member.Parameters))
-	for i, param := range member.Parameters {
-		cmember.Parameters[i] = param.Copy().(Parameter)
-	}
+	copy(cmember.Parameters, member.Parameters)
 	cmember.Tags = Tags(member.GetTags())
 	return &cmember
 }
@@ -258,12 +256,8 @@ func (member *Function) GetSecurity() string {
 // passed to the function. These parameters may have default values.
 //
 // GetParameters implements the rbxapi.Function interface.
-func (member *Function) GetParameters() []rbxapi.Parameter {
-	list := make([]rbxapi.Parameter, len(member.Parameters))
-	for i, param := range member.Parameters {
-		list[i] = param
-	}
-	return list
+func (member *Function) GetParameters() rbxapi.Parameters {
+	return Parameters{List: &member.Parameters}
 }
 
 // GetReturnType returns the type of value returned by the function.
@@ -296,9 +290,7 @@ func (member *YieldFunction) GetName() string {
 func (member *YieldFunction) Copy() rbxapi.Member {
 	cmember := *member
 	cmember.Parameters = make([]Parameter, len(member.Parameters))
-	for i, param := range member.Parameters {
-		cmember.Parameters[i] = param.Copy().(Parameter)
-	}
+	copy(cmember.Parameters, member.Parameters)
 	cmember.Tags = Tags(member.GetTags())
 	return &cmember
 }
@@ -314,12 +306,8 @@ func (member *YieldFunction) GetSecurity() string {
 // passed to the function. These parameters may have default values.
 //
 // GetParameters implements the rbxapi.Function interface.
-func (member *YieldFunction) GetParameters() []rbxapi.Parameter {
-	list := make([]rbxapi.Parameter, len(member.Parameters))
-	for i, param := range member.Parameters {
-		list[i] = param
-	}
-	return list
+func (member *YieldFunction) GetParameters() rbxapi.Parameters {
+	return Parameters{List: &member.Parameters}
 }
 
 // GetReturnType returns the type of value returned by the function.
@@ -357,9 +345,7 @@ func (member *Event) GetName() string {
 func (member *Event) Copy() rbxapi.Member {
 	cmember := *member
 	cmember.Parameters = make([]Parameter, len(member.Parameters))
-	for i, param := range member.Parameters {
-		cmember.Parameters[i] = param.Copy().(Parameter)
-	}
+	copy(cmember.Parameters, member.Parameters)
 	cmember.Tags = Tags(member.GetTags())
 	return &cmember
 }
@@ -375,12 +361,8 @@ func (member *Event) GetSecurity() string {
 // received from the event. These parameters cannot have default values.
 //
 // GetParameters implements the rbxapi.Event interface.
-func (member *Event) GetParameters() []rbxapi.Parameter {
-	list := make([]rbxapi.Parameter, len(member.Parameters))
-	for i, param := range member.Parameters {
-		list[i] = param
-	}
-	return list
+func (member *Event) GetParameters() rbxapi.Parameters {
+	return Parameters{List: &member.Parameters}
 }
 
 // Callback represents an event member descriptor.
@@ -412,9 +394,7 @@ func (member *Callback) GetName() string {
 func (member *Callback) Copy() rbxapi.Member {
 	cmember := *member
 	cmember.Parameters = make([]Parameter, len(member.Parameters))
-	for i, param := range member.Parameters {
-		cmember.Parameters[i] = param.Copy().(Parameter)
-	}
+	copy(cmember.Parameters, member.Parameters)
 	cmember.Tags = Tags(member.GetTags())
 	return &cmember
 }
@@ -430,12 +410,8 @@ func (member *Callback) GetSecurity() string {
 // passed to the callback. These parameters cannot have default values.
 //
 // GetParameters implements the rbxapi.Callback interface.
-func (member *Callback) GetParameters() []rbxapi.Parameter {
-	list := make([]rbxapi.Parameter, len(member.Parameters))
-	for i, param := range member.Parameters {
-		list[i] = param
-	}
-	return list
+func (member *Callback) GetParameters() rbxapi.Parameters {
+	return Parameters{List: &member.Parameters}
 }
 
 // GetReturnType returns the type of value that is returned by the callback.
@@ -445,12 +421,36 @@ func (member *Callback) GetReturnType() rbxapi.Type {
 	return member.ReturnType
 }
 
+type Parameters struct {
+	List *[]Parameter
+}
+
+func (params Parameters) GetLength() int {
+	return len(*params.List)
+}
+func (params Parameters) GetParameter(index int) rbxapi.Parameter {
+	return (*params.List)[index]
+}
+func (params Parameters) GetParameters() []rbxapi.Parameter {
+	list := make([]rbxapi.Parameter, len(*params.List))
+	for i, param := range *params.List {
+		list[i] = param
+	}
+	return list
+}
+func (params Parameters) Copy() rbxapi.Parameters {
+	list := make([]Parameter, len(*params.List))
+	copy(list, *params.List)
+	return Parameters{List: &list}
+}
+
 // Parameter represents a parameter of a function, yield function, event, or
 // callback member.
 type Parameter struct {
-	Type    Type
-	Name    string
-	Default *string
+	Type       Type
+	Name       string
+	HasDefault bool
+	Default    string
 }
 
 // GetType returns the type of the parameter value.
@@ -472,8 +472,8 @@ func (param Parameter) GetName() string {
 //
 // GetDefault implements the rbxapi.Parameter interface.
 func (param Parameter) GetDefault() (value string, ok bool) {
-	if param.Default != nil {
-		return *param.Default, true
+	if param.HasDefault {
+		return param.Default, true
 	}
 	return "", false
 }
@@ -482,12 +482,7 @@ func (param Parameter) GetDefault() (value string, ok bool) {
 //
 // Copy implements the rbxapi.Parameter interface.
 func (param Parameter) Copy() rbxapi.Parameter {
-	cparam := param
-	if param.Default != nil {
-		d := *param.Default
-		cparam.Default = &d
-	}
-	return cparam
+	return param
 }
 
 // Enum represents an enum descriptor.

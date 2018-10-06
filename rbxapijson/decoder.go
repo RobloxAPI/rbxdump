@@ -131,6 +131,25 @@ func (class *Class) UnmarshalJSON(b []byte) (err error) {
 	return nil
 }
 
+// UnmarshalJSON implements the json.Unmarshaller interface.
+func (param *Parameter) UnmarshalJSON(b []byte) (err error) {
+	var p struct {
+		Type    Type
+		Name    string
+		Default *string `json:",omitempty"`
+	}
+	if err := json.Unmarshal(b, &p); err != nil {
+		return err
+	}
+	param.Type = p.Type
+	param.Name = p.Name
+	if p.Default != nil {
+		param.HasDefault = true
+		param.Default = *p.Default
+	}
+	return nil
+}
+
 // Decode parses an API dump from r in JSON format.
 func Decode(r io.Reader) (root *Root, err error) {
 	jd := json.NewDecoder(r)

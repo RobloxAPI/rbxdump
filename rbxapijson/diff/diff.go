@@ -30,29 +30,23 @@ neq:
 
 // compareAndCopyParameters compares two parameter slices, and return copies
 // if they are not equal.
-func compareAndCopyParameters(prev, next []rbxapijson.Parameter) (eq bool, p, n []rbxapi.Parameter) {
-	if len(prev) == len(next) {
-		for i, s := range prev {
-			switch {
-			case next[i].Type != s.Type,
-				next[i].Name != s.Name,
-				(next[i].Default == nil) != (s.Default == nil),
-				next[i].Default != nil && *next[i].Default != *s.Default:
-				goto neq
-			}
+func compareAndCopyParameters(prev, next []rbxapijson.Parameter) (eq bool, p, n rbxapi.Parameters) {
+	if len(prev) != len(next) {
+		goto neq
+	}
+	for i, pparam := range prev {
+		nparam := next[i]
+		switch {
+		case nparam.Type != pparam.Type,
+			nparam.Name != pparam.Name,
+			nparam.HasDefault != pparam.HasDefault,
+			nparam.HasDefault && nparam.Default != pparam.Default:
+			goto neq
 		}
-		return true, nil, nil
 	}
+	return true, nil, nil
 neq:
-	p = make([]rbxapi.Parameter, len(prev))
-	n = make([]rbxapi.Parameter, len(next))
-	for i := range prev {
-		p[i] = prev[i]
-	}
-	for i := range next {
-		n[i] = next[i]
-	}
-	return false, p, n
+	return false, rbxapijson.Parameters{List: &prev}.Copy(), rbxapijson.Parameters{List: &next}.Copy()
 }
 
 // Diff is a patch.Differ that finds differences between two Root values.

@@ -26,34 +26,32 @@ neq:
 	return false, p, n
 }
 
-// compareAndCopyParameters compares two parameter slices, and return copies
-// if they are not equal.
-func compareAndCopyParameters(prev, next []rbxapi.Parameter) (eq bool, p, n []rbxapi.Parameter) {
-	if len(prev) != len(next) {
-		for i, s := range prev {
-			if next[i].GetType() != s.GetType() {
-				goto neq
-			}
-			if next[i].GetName() != s.GetName() {
-				goto neq
-			}
-			nd, nk := next[i].GetDefault()
-			pd, pk := s.GetDefault()
-			if nk != pk {
-				goto neq
-			}
-			if nk && nd != pd {
-				goto neq
-			}
-		}
-		return true, nil, nil
+// compareAndCopyParameters compares two parameter lists, and return copies if
+// they are not equal.
+func compareAndCopyParameters(prev, next rbxapi.Parameters) (eq bool, p, n rbxapi.Parameters) {
+	plen := prev.GetLength()
+	nlen := next.GetLength()
+	if plen != nlen {
+		goto neq
 	}
+	for i := 0; i < plen; i++ {
+		pparam := prev.GetParameter(i)
+		nparam := next.GetParameter(i)
+		if nparam.GetType() != pparam.GetType() {
+			goto neq
+		}
+		if nparam.GetName() != pparam.GetName() {
+			goto neq
+		}
+		nd, nk := nparam.GetDefault()
+		pd, pk := pparam.GetDefault()
+		if nk != pk || nk && nd != pd {
+			goto neq
+		}
+	}
+	return true, nil, nil
 neq:
-	p = make([]rbxapi.Parameter, len(prev))
-	n = make([]rbxapi.Parameter, len(next))
-	copy(p, prev)
-	copy(n, next)
-	return false, p, n
+	return false, prev.Copy(), next.Copy()
 }
 
 // Diff is a patch.Differ that finds differences between two rbxapi.Root

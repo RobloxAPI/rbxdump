@@ -107,20 +107,15 @@ func copyEnumItem(item rbxapi.EnumItem) *EnumItem {
 
 // copyParameters returns a deep copy of a list of generic rbxapi.Parameter
 // values.
-func copyParameters(params []rbxapi.Parameter) []Parameter {
-	p := make([]Parameter, len(params))
-	for i, param := range params {
-		if param, ok := param.(Parameter); ok {
-			p[i] = param.Copy().(Parameter)
-			continue
-		}
-		p[i].Type = copyType(param.GetType())
-		p[i].Name = param.GetName()
-		if d, ok := param.GetDefault(); ok {
-			p[i].Default = &d
-		}
+func copyParameters(params rbxapi.Parameters) []Parameter {
+	list := make([]Parameter, params.GetLength())
+	for i := 0; i < len(list); i++ {
+		param := params.GetParameter(i)
+		list[i].Type = copyType(param.GetType())
+		list[i].Name = param.GetName()
+		list[i].Default, list[i].HasDefault = param.GetDefault()
 	}
-	return p
+	return list
 }
 
 // copyType returns a deep copy of a generic rbxapi.Type.
@@ -335,17 +330,8 @@ func (member *Function) Patch(actions []patch.Action) {
 				member.Name = v
 			}
 		case "Parameters":
-			if v, ok := action.GetNext().([]rbxapi.Parameter); ok {
-				member.Parameters = make([]Parameter, len(v))
-				for i, param := range v {
-					t := param.GetType()
-					member.Parameters[i].Type.Category = t.GetCategory()
-					member.Parameters[i].Type.Name = t.GetName()
-					member.Parameters[i].Name = param.GetName()
-					if d, ok := param.GetDefault(); ok {
-						member.Parameters[i].Default = &d
-					}
-				}
+			if v, ok := action.GetNext().(rbxapi.Parameters); ok {
+				member.Parameters = copyParameters(v)
 			}
 		case "ReturnType":
 			switch v := action.GetNext().(type) {
@@ -377,17 +363,8 @@ func (member *Event) Patch(actions []patch.Action) {
 				member.Name = v
 			}
 		case "Parameters":
-			if v, ok := action.GetNext().([]rbxapi.Parameter); ok {
-				member.Parameters = make([]Parameter, len(v))
-				for i, param := range v {
-					t := param.GetType()
-					member.Parameters[i].Type.Category = t.GetCategory()
-					member.Parameters[i].Type.Name = t.GetName()
-					member.Parameters[i].Name = param.GetName()
-					if d, ok := param.GetDefault(); ok {
-						member.Parameters[i].Default = &d
-					}
-				}
+			if v, ok := action.GetNext().(rbxapi.Parameters); ok {
+				member.Parameters = copyParameters(v)
 			}
 		case "Security":
 			if v, ok := action.GetNext().(string); ok {
@@ -412,17 +389,8 @@ func (member *Callback) Patch(actions []patch.Action) {
 				member.Name = v
 			}
 		case "Parameters":
-			if v, ok := action.GetNext().([]rbxapi.Parameter); ok {
-				member.Parameters = make([]Parameter, len(v))
-				for i, param := range v {
-					t := param.GetType()
-					member.Parameters[i].Type.Category = t.GetCategory()
-					member.Parameters[i].Type.Name = t.GetName()
-					member.Parameters[i].Name = param.GetName()
-					if d, ok := param.GetDefault(); ok {
-						member.Parameters[i].Default = &d
-					}
-				}
+			if v, ok := action.GetNext().(rbxapi.Parameters); ok {
+				member.Parameters = copyParameters(v)
 			}
 		case "ReturnType":
 			switch v := action.GetNext().(type) {

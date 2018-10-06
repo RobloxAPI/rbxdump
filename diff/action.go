@@ -23,9 +23,11 @@ func toString(v interface{}) string {
 		return v.String()
 	case []string:
 		return "[" + strings.Join(v, ", ") + "]"
-	case []rbxapi.Parameter:
-		ss := make([]string, len(v))
-		for i, param := range v {
+	case rbxapi.Parameters:
+		n := v.GetLength()
+		ss := make([]string, n)
+		for i := 0; i < n; i++ {
+			param := v.GetParameter(i)
 			ss[i] = param.GetType().String() + " " + param.GetName()
 			if def, ok := param.GetDefault(); ok {
 				ss[i] += " = " + def

@@ -77,6 +77,21 @@ func (class *Class) MarshalJSON() (b []byte, err error) {
 	return json.Marshal(&c)
 }
 
+// MarshalJSON implements the json.Marshaller interface.
+func (param *Parameter) MarshalJSON() (b []byte, err error) {
+	var p struct {
+		Type    Type
+		Name    string
+		Default *string `json:",omitempty"`
+	}
+	p.Type = param.Type
+	p.Name = param.Name
+	if param.HasDefault {
+		p.Default = &param.Default
+	}
+	return json.Marshal(&p)
+}
+
 // Encode encodes root, writing the results to w in the API dump JSON format.
 func Encode(w io.Writer, root *Root) (err error) {
 	je := json.NewEncoder(w)

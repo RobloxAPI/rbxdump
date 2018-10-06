@@ -91,7 +91,7 @@ type Function interface {
 
 	// GetParameters returns the list of parameters describing the arguments
 	// passed to the function. These parameters may have default values.
-	GetParameters() []Parameter
+	GetParameters() Parameters
 
 	// GetReturnType returns the type of value returned by the function.
 	GetReturnType() Type
@@ -106,7 +106,7 @@ type Event interface {
 
 	// GetParameters returns the list of parameters describing the arguments
 	// received from the event. These parameters cannot have default values.
-	GetParameters() []Parameter
+	GetParameters() Parameters
 }
 
 // Callback represents a class member of the Callback member type.
@@ -118,14 +118,31 @@ type Callback interface {
 
 	// GetParameters returns the list of parameters describing the arguments
 	// passed to the callback. These parameters cannot have default values.
-	GetParameters() []Parameter
+	GetParameters() Parameters
 
 	// GetReturnType returns the type of value that is returned by the
 	// callback.
 	GetReturnType() Type
 }
 
-// Parameter represents a parameter of a function, event, or callback member.
+// Parameters represents a list of parameters of a function, event, or
+// callback member.
+type Parameters interface {
+	// GetLength returns the number of parameters in the list.
+	GetLength() int
+
+	// GetParameter returns the parameter indicated by the given index.
+	GetParameter(int) Parameter
+
+	// GetParameters returns a copy of the list as a slice.
+	GetParameters() []Parameter
+
+	// Copy returns a deep copy of the parameter list.
+	Copy() Parameters
+}
+
+// Parameter represents a single parameter of a function, event, or callback
+// member.
 type Parameter interface {
 	// GetType returns the type of the parameter value.
 	GetType() Type

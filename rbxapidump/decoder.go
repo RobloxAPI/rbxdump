@@ -469,8 +469,8 @@ func (d *decoder) decodeParameter(canDefault bool) (param Parameter) {
 		return param
 	}
 	d.skipWhitespace()
-	s := d.decodeDefault()
-	param.Default = &s
+	param.HasDefault = true
+	param.Default = d.decodeDefault()
 	return param
 }
 
