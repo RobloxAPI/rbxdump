@@ -177,7 +177,7 @@ func (d *DiffClass) Diff() (actions []patch.Action) {
 				}
 			}
 			actions = append(actions, &diff.MemberAction{Type: patch.Remove, Class: d.Prev, Member: p})
-			actions = append(actions, &diff.MemberAction{Type: patch.Add, Class: d.Prev, Member: p})
+			actions = append(actions, &diff.MemberAction{Type: patch.Add, Class: d.Prev, Member: n})
 		}
 		for _, n := range d.Next.Members {
 			if _, ok := names[n.GetName()]; !ok {
