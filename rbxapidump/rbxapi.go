@@ -267,56 +267,6 @@ func (member *Function) GetReturnType() rbxapi.Type {
 	return member.ReturnType
 }
 
-// YieldFunction represents a yield function member descriptor.
-type YieldFunction Function
-
-// GetMemberType returns a string indicating the the type of member.
-//
-// GetMemberType implements the rbxapi.Member interface.
-func (member *YieldFunction) GetMemberType() string {
-	return "Function"
-}
-
-// GetName returns the name of the member.
-//
-// GetName implements the rbxapi.Member interface.
-func (member *YieldFunction) GetName() string {
-	return member.Name
-}
-
-// Copy returns a deep copy of the member descriptor.
-//
-// Copy implements the rbxapi.Member interface.
-func (member *YieldFunction) Copy() rbxapi.Member {
-	cmember := *member
-	cmember.Parameters = make([]Parameter, len(member.Parameters))
-	copy(cmember.Parameters, member.Parameters)
-	cmember.Tags = Tags(member.GetTags())
-	return &cmember
-}
-
-// GetSecurity returns the security context of the member's access.
-//
-// GetSecurity implements the rbxapi.Function interface.
-func (member *YieldFunction) GetSecurity() string {
-	return getSecurity(member.Tags)
-}
-
-// GetParameters returns the list of parameters describing the arguments
-// passed to the function. These parameters may have default values.
-//
-// GetParameters implements the rbxapi.Function interface.
-func (member *YieldFunction) GetParameters() rbxapi.Parameters {
-	return Parameters{List: &member.Parameters}
-}
-
-// GetReturnType returns the type of value returned by the function.
-//
-// GetReturnType implements the rbxapi.Function interface.
-func (member *YieldFunction) GetReturnType() rbxapi.Type {
-	return member.ReturnType
-}
-
 // Event represents an event member descriptor.
 type Event struct {
 	Name       string

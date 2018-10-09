@@ -330,9 +330,9 @@ func (d *decoder) decodeItem() {
 	case "Property":
 		d.decodeProperty()
 	case "Function":
-		d.decodeFunction()
+		d.decodeFunction(false)
 	case "YieldFunction":
-		d.decodeYieldFunction()
+		d.decodeFunction(true)
 	case "Event":
 		d.decodeEvent()
 	case "Callback":
@@ -373,7 +373,7 @@ func (d *decoder) decodeProperty() {
 	d.addMember(&member)
 }
 
-func (d *decoder) decodeFunction() {
+func (d *decoder) decodeFunction(yields bool) {
 	var member Function
 	member.ReturnType = Type(d.expectChars(isType, "return type"))
 	d.expectWhitespace()
@@ -387,23 +387,11 @@ func (d *decoder) decodeFunction() {
 	member.Parameters = d.decodeParameters(true)
 	d.skipWhitespace()
 	d.decodeTags(&member.Tags)
-	d.addMember(&member)
-}
-
-func (d *decoder) decodeYieldFunction() {
-	var member YieldFunction
-	member.ReturnType = Type(d.expectChars(isType, "return type"))
-	d.expectWhitespace()
-	member.Class = d.expectChars(isClassName, "member class")
-	d.expectClass(member.Class)
-	d.skipWhitespace()
-	d.expectChar(':')
-	d.skipWhitespace()
-	member.Name = d.expectChars(isMemberName, "member name")
-	d.skipWhitespace()
-	member.Parameters = d.decodeParameters(true)
-	d.skipWhitespace()
-	d.decodeTags(&member.Tags)
+	if yields {
+		member.Tags.SetTag("Yields")
+	} else {
+		member.Tags.UnsetTag("Yields")
+	}
 	d.addMember(&member)
 }
 

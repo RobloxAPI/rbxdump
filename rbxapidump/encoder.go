@@ -153,7 +153,11 @@ func (e *encoder) encodeMember(class *Class, member rbxapi.Member) {
 		e.writeString(member.Name)
 		e.encodeTags(member.Tags)
 	case *Function:
-		e.writeString("Function ")
+		if member.Tags.GetTag("Yields") {
+			e.writeString("YieldFunction ")
+		} else {
+			e.writeString("Function ")
+		}
 		e.checkChars(isName, true, member.ReturnType.String(), "Function.ReturnType")
 		e.writeString(member.ReturnType.String())
 		e.writeString(" ")
@@ -161,17 +165,7 @@ func (e *encoder) encodeMember(class *Class, member rbxapi.Member) {
 		e.writeString(":")
 		e.writeString(member.Name)
 		e.encodeParameters(member.Parameters, true)
-		e.encodeTags(member.Tags)
-	case *YieldFunction:
-		e.writeString("YieldFunction ")
-		e.checkChars(isName, true, member.ReturnType.String(), "YieldFunction.ReturnType")
-		e.writeString(member.ReturnType.String())
-		e.writeString(" ")
-		e.writeString(class.Name)
-		e.writeString(":")
-		e.writeString(member.Name)
-		e.encodeParameters(member.Parameters, true)
-		e.encodeTags(member.Tags)
+		e.encodeTags(member.Tags, "Yields")
 	case *Event:
 		e.writeString("Event ")
 		e.writeString(class.Name)
@@ -256,8 +250,14 @@ func (e *encoder) encodeEnumItem(enum *Enum, item *EnumItem) {
 	e.writeString(e.line)
 }
 
-func (e *encoder) encodeTags(tags Tags) {
+func (e *encoder) encodeTags(tags Tags, exclude ...string) {
+loop:
 	for _, tag := range tags {
+		for _, ex := range exclude {
+			if tag == ex {
+				continue loop
+			}
+		}
 		e.encodeTag(tag)
 	}
 }
