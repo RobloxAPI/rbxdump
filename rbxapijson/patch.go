@@ -185,7 +185,7 @@ func (root *Root) Patch(actions []patch.Action) {
 			}
 		}
 		if action, ok := action.(patch.Enum); ok {
-			if aenum := action.GetEnum(); aenum == nil {
+			if aenum := action.GetEnum(); aenum != nil {
 				switch action.GetType() {
 				case patch.Remove:
 					name := aenum.GetName()
