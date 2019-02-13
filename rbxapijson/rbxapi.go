@@ -353,20 +353,23 @@ type Parameters struct {
 }
 
 func (params Parameters) GetLength() int {
+	if params.List == nil {
+		return 0
+	}
 	return len(*params.List)
 }
 func (params Parameters) GetParameter(index int) rbxapi.Parameter {
 	return (*params.List)[index]
 }
 func (params Parameters) GetParameters() []rbxapi.Parameter {
-	list := make([]rbxapi.Parameter, len(*params.List))
+	list := make([]rbxapi.Parameter, params.GetLength())
 	for i, param := range *params.List {
 		list[i] = param
 	}
 	return list
 }
 func (params Parameters) Copy() rbxapi.Parameters {
-	list := make([]Parameter, len(*params.List))
+	list := make([]Parameter, params.GetLength())
 	copy(list, *params.List)
 	return Parameters{List: &list}
 }
