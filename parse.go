@@ -46,11 +46,15 @@ const parserGrammar = `` +
 
 var streamParser = regexp.MustCompile(parserGrammar)
 
-var ZonePST *time.Location
+var zonePST *time.Location
+
+func ZonePST() *time.Location {
+	return zonePST
+}
 
 func init() {
 	var err error
-	if ZonePST, err = time.LoadLocationFromTZData("America/Los_Angeles", []byte(zonePSTData)); err != nil {
+	if zonePST, err = time.LoadLocationFromTZData("America/Los_Angeles", []byte(zonePSTData)); err != nil {
 		panic(err)
 	}
 }
@@ -81,7 +85,7 @@ func Lex(b []byte) (s Stream) {
 			}
 			const dateLayout = "1/2/2006 3:04:05 PM"
 			var err error
-			if job.Time, err = time.ParseInLocation(dateLayout, string(b[i+r[8]:i+r[9]]), ZonePST); err != nil {
+			if job.Time, err = time.ParseInLocation(dateLayout, string(b[i+r[8]:i+r[9]]), zonePST); err != nil {
 				goto parseRaw
 			}
 			if r[10] >= 0 {
