@@ -126,12 +126,13 @@ type Version struct {
 	Major, Minor, Maint, Build int
 }
 
+var versionGrammar = regexp.MustCompile(`` +
+	`^(\d+)\.(\d+)\.(\d+)\.(\d+)$` +
+	`|^(\d+), (\d+), (\d+), (\d+)$`,
+)
+
 func VersionFromString(s string) (v Version, ok bool) {
-	parse := regexp.MustCompile(`` +
-		`^(\d+)\.(\d+)\.(\d+)\.(\d+)$` +
-		`|^(\d+), (\d+), (\d+), (\d+)$`,
-	)
-	r := parse.FindStringSubmatch(s)
+	r := versionGrammar.FindStringSubmatch(s)
 	if r[0] != "" {
 		if r[1] != "" {
 			v.Major, _ = strconv.Atoi(r[1])
