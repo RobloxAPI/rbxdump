@@ -52,6 +52,8 @@ func ZonePST() *time.Location {
 	return zonePST
 }
 
+//go:generate sh unzip -p $GOROOT/lib/time/zoneinfo.zip America/Los_Angeles | gobake -decl=const -name=zonePSTData -output=zone.go
+
 func init() {
 	var err error
 	if zonePST, err = time.LoadLocationFromTZData("America/Los_Angeles", []byte(zonePSTData)); err != nil {
