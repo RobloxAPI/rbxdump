@@ -1,12 +1,11 @@
-// The diff package provides an implementation of the patch package for the
-// rbxapijson types.
-package diff
+// Provides an implementation of the patch package for the rbxapijson types.
+
+package rbxapijson
 
 import (
 	"github.com/robloxapi/rbxapi"
 	"github.com/robloxapi/rbxapi/diff"
 	"github.com/robloxapi/rbxapi/patch"
-	"github.com/robloxapi/rbxapi/rbxapijson"
 )
 
 // compareAndCopyTags compares two string slices, and return copies if they
@@ -30,7 +29,7 @@ neq:
 
 // compareAndCopyParameters compares two parameter slices, and return copies
 // if they are not equal.
-func compareAndCopyParameters(prev, next []rbxapijson.Parameter) (eq bool, p, n rbxapi.Parameters) {
+func compareAndCopyParameters(prev, next []Parameter) (eq bool, p, n rbxapi.Parameters) {
 	if len(prev) != len(next) {
 		goto neq
 	}
@@ -46,12 +45,12 @@ func compareAndCopyParameters(prev, next []rbxapijson.Parameter) (eq bool, p, n 
 	}
 	return true, nil, nil
 neq:
-	return false, rbxapijson.Parameters{List: &prev}.Copy(), rbxapijson.Parameters{List: &next}.Copy()
+	return false, Parameters{List: &prev}.Copy(), Parameters{List: &next}.Copy()
 }
 
 // Diff is a patch.Differ that finds differences between two Root values.
 type Diff struct {
-	Prev, Next *rbxapijson.Root
+	Prev, Next *Root
 }
 
 func (d *Diff) Diff() (actions []patch.Action) {
@@ -67,7 +66,7 @@ func (d *Diff) Diff() (actions []patch.Action) {
 			} else {
 				for _, p := range d.Prev.Classes {
 					names[p.Name] = struct{}{}
-					n, _ := d.Next.GetClass(p.Name).(*rbxapijson.Class)
+					n, _ := d.Next.GetClass(p.Name).(*Class)
 					if n == nil {
 						actions = append(actions, &diff.ClassAction{Type: patch.Remove, Class: p})
 						continue
@@ -96,7 +95,7 @@ func (d *Diff) Diff() (actions []patch.Action) {
 			} else {
 				for _, p := range d.Prev.Enums {
 					names[p.Name] = struct{}{}
-					n, _ := d.Next.GetEnum(p.Name).(*rbxapijson.Enum)
+					n, _ := d.Next.GetEnum(p.Name).(*Enum)
 					if n == nil {
 						actions = append(actions, &diff.EnumAction{Type: patch.Remove, Enum: p})
 						continue
@@ -118,7 +117,7 @@ func (d *Diff) Diff() (actions []patch.Action) {
 
 // Diff is a patch.Differ that finds differences between two Class values.
 type DiffClass struct {
-	Prev, Next *rbxapijson.Class
+	Prev, Next *Class
 	// ExcludeMembers indicates whether members should be diffed.
 	ExcludeMembers bool
 }
@@ -155,23 +154,23 @@ func (d *DiffClass) Diff() (actions []patch.Action) {
 				continue
 			}
 			switch p := p.(type) {
-			case *rbxapijson.Property:
-				if n, ok := n.(*rbxapijson.Property); ok {
+			case *Property:
+				if n, ok := n.(*Property); ok {
 					actions = append(actions, (&DiffProperty{d.Prev, p, n}).Diff()...)
 					continue
 				}
-			case *rbxapijson.Function:
-				if n, ok := n.(*rbxapijson.Function); ok {
+			case *Function:
+				if n, ok := n.(*Function); ok {
 					actions = append(actions, (&DiffFunction{d.Prev, p, n}).Diff()...)
 					continue
 				}
-			case *rbxapijson.Event:
-				if n, ok := n.(*rbxapijson.Event); ok {
+			case *Event:
+				if n, ok := n.(*Event); ok {
 					actions = append(actions, (&DiffEvent{d.Prev, p, n}).Diff()...)
 					continue
 				}
-			case *rbxapijson.Callback:
-				if n, ok := n.(*rbxapijson.Callback); ok {
+			case *Callback:
+				if n, ok := n.(*Callback); ok {
 					actions = append(actions, (&DiffCallback{d.Prev, p, n}).Diff()...)
 					continue
 				}
@@ -190,8 +189,8 @@ func (d *DiffClass) Diff() (actions []patch.Action) {
 
 // Diff is a patch.Differ that finds differences between two Property values.
 type DiffProperty struct {
-	Class      *rbxapijson.Class
-	Prev, Next *rbxapijson.Property
+	Class      *Class
+	Prev, Next *Property
 }
 
 func (d *DiffProperty) Diff() (actions []patch.Action) {
@@ -233,8 +232,8 @@ func (d *DiffProperty) Diff() (actions []patch.Action) {
 
 // Diff is a patch.Differ that finds differences between two Function values.
 type DiffFunction struct {
-	Class      *rbxapijson.Class
-	Prev, Next *rbxapijson.Function
+	Class      *Class
+	Prev, Next *Function
 }
 
 func (d *DiffFunction) Diff() (actions []patch.Action) {
@@ -267,8 +266,8 @@ func (d *DiffFunction) Diff() (actions []patch.Action) {
 
 // Diff is a patch.Differ that finds differences between two Event values.
 type DiffEvent struct {
-	Class      *rbxapijson.Class
-	Prev, Next *rbxapijson.Event
+	Class      *Class
+	Prev, Next *Event
 }
 
 func (d *DiffEvent) Diff() (actions []patch.Action) {
@@ -298,8 +297,8 @@ func (d *DiffEvent) Diff() (actions []patch.Action) {
 
 // Diff is a patch.Differ that finds differences between two Callback values.
 type DiffCallback struct {
-	Class      *rbxapijson.Class
-	Prev, Next *rbxapijson.Callback
+	Class      *Class
+	Prev, Next *Callback
 }
 
 func (d *DiffCallback) Diff() (actions []patch.Action) {
@@ -332,7 +331,7 @@ func (d *DiffCallback) Diff() (actions []patch.Action) {
 
 // Diff is a patch.Differ that finds differences between two Enum values.
 type DiffEnum struct {
-	Prev, Next *rbxapijson.Enum
+	Prev, Next *Enum
 	// ExcludeEnumItems indicates whether enum items should be diffed.
 	ExcludeEnumItems bool
 }
@@ -357,7 +356,7 @@ func (d *DiffEnum) Diff() (actions []patch.Action) {
 		names := make(map[string]struct{}, len(d.Prev.Items))
 		for _, p := range d.Prev.Items {
 			names[p.GetName()] = struct{}{}
-			n, _ := d.Next.GetEnumItem(p.GetName()).(*rbxapijson.EnumItem)
+			n, _ := d.Next.GetEnumItem(p.GetName()).(*EnumItem)
 			if n == nil {
 				actions = append(actions, &diff.EnumItemAction{Type: patch.Remove, Enum: d.Prev, EnumItem: p})
 				continue
@@ -375,8 +374,8 @@ func (d *DiffEnum) Diff() (actions []patch.Action) {
 
 // Diff is a patch.Differ that finds differences between two EnumItem values.
 type DiffEnumItem struct {
-	Enum       *rbxapijson.Enum
-	Prev, Next *rbxapijson.EnumItem
+	Enum       *Enum
+	Prev, Next *EnumItem
 }
 
 func (d *DiffEnumItem) Diff() (actions []patch.Action) {

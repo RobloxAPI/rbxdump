@@ -12,4 +12,3 @@ Roblox Lua API.
 	- [diff](https://godoc.org/github.com/RobloxAPI/rbxapi/diff): Provides an implementation of the patch package for the generic rbxapi types.
 - [rbxapidump](https://godoc.org/github.com/RobloxAPI/rbxapi/rbxapidump): Implements the rbxapi interface as a codec for the Roblox API dump format.
 - [rbxapijson](https://godoc.org/github.com/RobloxAPI/rbxapi/rbxapijson): Implements the rbxapi package as a codec for the Roblox API dump in JSON format.
-	- [diff](https://godoc.org/github.com/RobloxAPI/rbxapi/rbxapijson/diff): Provides an implementation of the patch package for the rbxapijson types.
