@@ -25,7 +25,7 @@ type Differ interface {
 // a given list of Actions to a structure. Actions with information that is
 // irrelevant, incomplete, or invalid can be ignored.
 //
-// Ideally, when the APIs "origin" and "target" are compared with a Differ,
+// Ideally, when the API's "origin" and "target" are compared with a Differ,
 // and the returned list of Actions are passed to a Patcher, the end result is
 // that origin is transformed to match target exactly. This should be the case
 // when origin and target come from the same implementation. In practice,
@@ -33,7 +33,7 @@ type Differ interface {
 // case it may not be possible for all information to transferred from one to
 // the other.
 //
-// Implementers must ensure that referred information is properly copied, so
+// Implementations must ensure that referred information is properly copied, so
 // that values are not shared between structures.
 type Patcher interface {
 	Patch([]Action)
