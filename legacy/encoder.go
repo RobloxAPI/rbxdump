@@ -1,16 +1,17 @@
-package rbxapidump
+package legacy
 
 import (
 	"bufio"
 	"errors"
-	"github.com/robloxapi/rbxapi"
 	"io"
 	"strconv"
+
+	"github.com/robloxapi/rbxapi"
 )
 
 type encoder struct {
 	w      *bufio.Writer
-	root   *Root
+	root   *rbxdump.Root
 	n      int64
 	err    error
 	line   string
@@ -115,7 +116,7 @@ finish:
 	return e.n, e.err
 }
 
-func (e *encoder) encodeClass(class *Class) {
+func (e *encoder) encodeClass(class *rbxdump.Class) {
 	e.checkChars(isName, true, class.Name, "Class.Name")
 	e.checkChars(isName, false, class.Superclass, "Class.Superclass")
 
@@ -137,13 +138,13 @@ func (e *encoder) encodeClass(class *Class) {
 	}
 }
 
-func (e *encoder) encodeMember(class *Class, member rbxapi.Member) {
-	e.checkChars(isName, true, member.GetName(), "Member.Name")
+func (e *encoder) encodeMember(class *rbxdump.Class, member rbxdump.Member) {
+	e.checkChars(isName, true, member.MemberName(), "Member.Name")
 	e.writeString(e.prefix)
 	e.writeString(e.indent)
 
 	switch member := member.(type) {
-	case *Property:
+	case *rbxdump.Property:
 		e.writeString("Property ")
 		e.checkChars(isName, true, member.ValueType.String(), "Property.ValueType")
 		e.writeString(member.ValueType.String())
@@ -152,7 +153,7 @@ func (e *encoder) encodeMember(class *Class, member rbxapi.Member) {
 		e.writeString(".")
 		e.writeString(member.Name)
 		e.encodeTags(member.Tags)
-	case *Function:
+	case *rbxdump.Function:
 		if member.Tags.GetTag("Yields") {
 			e.writeString("YieldFunction ")
 		} else {
@@ -166,14 +167,14 @@ func (e *encoder) encodeMember(class *Class, member rbxapi.Member) {
 		e.writeString(member.Name)
 		e.encodeParameters(member.Parameters, true)
 		e.encodeTags(member.Tags, "Yields")
-	case *Event:
+	case *rbxdump.Event:
 		e.writeString("Event ")
 		e.writeString(class.Name)
 		e.writeString(".")
 		e.writeString(member.Name)
 		e.encodeParameters(member.Parameters, false)
 		e.encodeTags(member.Tags)
-	case *Callback:
+	case *rbxdump.Callback:
 		e.writeString("Callback ")
 		e.checkChars(isName, true, member.ReturnType.String(), "Callback.ReturnType")
 		e.writeString(member.ReturnType.String())
@@ -189,7 +190,7 @@ func (e *encoder) encodeMember(class *Class, member rbxapi.Member) {
 	e.writeString(e.line)
 }
 
-func (e *encoder) encodeParameters(params []Parameter, canDefault bool) {
+func (e *encoder) encodeParameters(params []rbxdump.Parameter, canDefault bool) {
 	e.writeString("(")
 	if len(params) > 0 {
 		e.encodeParameter(params[0], canDefault)
@@ -201,8 +202,8 @@ func (e *encoder) encodeParameters(params []Parameter, canDefault bool) {
 	e.writeString(")")
 }
 
-func (e *encoder) encodeParameter(param Parameter, canDefault bool) {
-	if !canDefault && param.HasDefault {
+func (e *encoder) encodeParameter(param rbxdump.Parameter, canDefault bool) {
+	if !canDefault && param.Optional {
 		e.setError("member cannot have default argument")
 		return
 	}
@@ -212,14 +213,14 @@ func (e *encoder) encodeParameter(param Parameter, canDefault bool) {
 	e.writeString(param.Type.String())
 	e.writeString(" ")
 	e.writeString(param.Name)
-	if param.HasDefault {
+	if param.Optional {
 		e.checkChars(isDefault, false, param.Default, "Argument.Default")
 		e.writeString(" = ")
 		e.writeString(param.Default)
 	}
 }
 
-func (e *encoder) encodeEnum(enum *Enum) {
+func (e *encoder) encodeEnum(enum *rbxdump.Enum) {
 	e.checkChars(isName, true, enum.Name, "Enum.Name")
 
 	e.writeString(e.prefix)
@@ -236,7 +237,7 @@ func (e *encoder) encodeEnum(enum *Enum) {
 	}
 }
 
-func (e *encoder) encodeEnumItem(enum *Enum, item *EnumItem) {
+func (e *encoder) encodeEnumItem(enum *rbxdump.Enum, item *rbxdump.EnumItem) {
 	e.checkChars(isName, true, item.Name, "EnumItem.Name")
 	e.writeString(e.prefix)
 	e.writeString(e.indent)
@@ -250,7 +251,7 @@ func (e *encoder) encodeEnumItem(enum *Enum, item *EnumItem) {
 	e.writeString(e.line)
 }
 
-func (e *encoder) encodeTags(tags Tags, exclude ...string) {
+func (e *encoder) encodeTags(tags rbxdump.Tags, exclude ...string) {
 loop:
 	for _, tag := range tags {
 		for _, ex := range exclude {
@@ -289,7 +290,7 @@ func (e *encoder) encodeTag(tag string) {
 }
 
 // Encode encodes root, writing the results to w in the API dump format.
-func Encode(w io.Writer, root *Root) (err error) {
+func Encode(w io.Writer, root *rbxdump.Root) (err error) {
 	e := &encoder{
 		w:      bufio.NewWriter(w),
 		root:   root,

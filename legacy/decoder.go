@@ -1,11 +1,12 @@
-package rbxapidump
+package legacy
 
 import (
 	"bufio"
 	"bytes"
-	"github.com/robloxapi/rbxapi"
 	"io"
 	"strconv"
+
+	"github.com/robloxapi/rbxapi"
 )
 
 // SyntaxError indicates that a syntax error occurred while decoding.
@@ -27,15 +28,15 @@ func (e *syntaxError) Error() string {
 }
 
 type decoder struct {
-	root  *Root
+	root  *rbxdump.Root
 	r     io.ByteReader
 	next  []byte
 	buf   bytes.Buffer
 	n     int64
 	err   error
 	line  int
-	class *Class
-	enum  *Enum
+	class *rbxdump.Class
+	enum  *rbxdump.Enum
 }
 
 // Creates a syntaxError with the current line number.
@@ -242,37 +243,37 @@ func (d *decoder) expectInt() int {
 }
 
 // Add a class to the API. Sets class parent.
-func (d *decoder) addClass(class *Class) {
+func (d *decoder) addClass(class *rbxdump.Class) {
 	if d.err != nil {
 		return
 	}
-	d.root.Classes = append(d.root.Classes, class)
+	d.root.Classes[class.Name] = class
 	d.class = class
 }
 
 // Add an enum to the API. Sets enum parent.
-func (d *decoder) addEnum(enum *Enum) {
+func (d *decoder) addEnum(enum *rbxdump.Enum) {
 	if d.err != nil {
 		return
 	}
-	d.root.Enums = append(d.root.Enums, enum)
+	d.root.Enums[enum.Name] = enum
 	d.enum = enum
 }
 
 // Add a member to the parent class. Assumes the parent class exists.
-func (d *decoder) addMember(member rbxapi.Member) {
+func (d *decoder) addMember(member rbxdump.Member) {
 	if d.err != nil {
 		return
 	}
-	d.class.Members = append(d.class.Members, member)
+	d.class.Members[member.MemberName()] = member
 }
 
 // Add an  enum item to the parent enum. Assumes the parent enum exists.
-func (d *decoder) addEnumItem(item *EnumItem) {
+func (d *decoder) addEnumItem(item *rbxdump.EnumItem) {
 	if d.err != nil {
 		return
 	}
-	d.enum.Items = append(d.enum.Items, item)
+	d.enum.Items[item.Name] = item
 }
 
 func (d *decoder) decode() error {
@@ -316,7 +317,6 @@ func (d *decoder) decodeLine() (line bool) {
 			return
 		}
 	}
-	return
 }
 
 func (d *decoder) decodeItem() {
@@ -346,7 +346,7 @@ func (d *decoder) decodeItem() {
 
 func (d *decoder) decodeClass() {
 	d.clearParent()
-	var class Class
+	class := rbxdump.Class{Members: make(map[string]rbxdump.Member)}
 	class.Name = d.expectChars(isClassName, "class name")
 	d.skipWhitespace()
 	if d.checkChar(':') {
@@ -359,11 +359,11 @@ func (d *decoder) decodeClass() {
 }
 
 func (d *decoder) decodeProperty() {
-	var member Property
-	member.ValueType = Type(d.expectChars(isType, "value type"))
+	var member rbxdump.Property
+	member.ValueType = rbxdump.Type{Name: d.expectChars(isType, "value type")}
 	d.expectWhitespace()
-	member.Class = d.expectChars(isClassName, "member class")
-	d.expectClass(member.Class)
+	class := d.expectChars(isClassName, "member class")
+	d.expectClass(class)
 	d.skipWhitespace()
 	d.expectChar('.')
 	d.skipWhitespace()
@@ -374,11 +374,11 @@ func (d *decoder) decodeProperty() {
 }
 
 func (d *decoder) decodeFunction(yields bool) {
-	var member Function
-	member.ReturnType = Type(d.expectChars(isType, "return type"))
+	var member rbxdump.Function
+	member.ReturnType = rbxdump.Type{Name: d.expectChars(isType, "return type")}
 	d.expectWhitespace()
-	member.Class = d.expectChars(isClassName, "member class")
-	d.expectClass(member.Class)
+	class := d.expectChars(isClassName, "member class")
+	d.expectClass(class)
 	d.skipWhitespace()
 	d.expectChar(':')
 	d.skipWhitespace()
@@ -396,9 +396,9 @@ func (d *decoder) decodeFunction(yields bool) {
 }
 
 func (d *decoder) decodeEvent() {
-	var member Event
-	member.Class = d.expectChars(isClassName, "member class")
-	d.expectClass(member.Class)
+	var member rbxdump.Event
+	class := d.expectChars(isClassName, "member class")
+	d.expectClass(class)
 	d.expectChar('.')
 	member.Name = d.expectChars(isMemberName, "member name")
 	d.skipWhitespace()
@@ -409,11 +409,11 @@ func (d *decoder) decodeEvent() {
 }
 
 func (d *decoder) decodeCallback() {
-	var member Callback
-	member.ReturnType = Type(d.expectChars(isType, "return type"))
+	var member rbxdump.Callback
+	member.ReturnType = rbxdump.Type{Name: d.expectChars(isType, "return type")}
 	d.expectWhitespace()
-	member.Class = d.expectChars(isClassName, "member class")
-	d.expectClass(member.Class)
+	class := d.expectChars(isClassName, "member class")
+	d.expectClass(class)
 	d.skipWhitespace()
 	d.expectChar('.')
 	d.skipWhitespace()
@@ -425,7 +425,7 @@ func (d *decoder) decodeCallback() {
 	d.addMember(&member)
 }
 
-func (d *decoder) decodeParameters(canDefault bool) (params []Parameter) {
+func (d *decoder) decodeParameters(canDefault bool) (params []rbxdump.Parameter) {
 	d.expectChar('(')
 	d.skipWhitespace()
 	if d.checkChar(')') {
@@ -445,8 +445,8 @@ func (d *decoder) decodeParameters(canDefault bool) (params []Parameter) {
 	return params
 }
 
-func (d *decoder) decodeParameter(canDefault bool) (param Parameter) {
-	param.Type = Type(d.expectChars(isType, "type"))
+func (d *decoder) decodeParameter(canDefault bool) (param rbxdump.Parameter) {
+	param.Type = rbxdump.Type{Name: d.expectChars(isType, "type")}
 	d.expectWhitespace()
 	param.Name = d.expectChars(isArgName, "argument name")
 	if !canDefault {
@@ -457,7 +457,7 @@ func (d *decoder) decodeParameter(canDefault bool) (param Parameter) {
 		return param
 	}
 	d.skipWhitespace()
-	param.HasDefault = true
+	param.Optional = true
 	param.Default = d.decodeDefault()
 	return param
 }
@@ -469,7 +469,7 @@ func (d *decoder) decodeDefault() string {
 }
 
 func (d *decoder) decodeEnum() {
-	var enum Enum
+	enum := rbxdump.Enum{Items: make(map[string]*rbxdump.EnumItem)}
 	enum.Name = d.expectChars(isEnumName, "enum name")
 	d.skipWhitespace()
 	d.decodeTags(&enum.Tags)
@@ -477,9 +477,9 @@ func (d *decoder) decodeEnum() {
 }
 
 func (d *decoder) decodeEnumItem() {
-	var item EnumItem
-	item.Enum = d.expectChars(isEnumName, "enum name")
-	d.expectEnum(item.Enum)
+	var item rbxdump.EnumItem
+	enum := d.expectChars(isEnumName, "enum name")
+	d.expectEnum(enum)
 	d.skipWhitespace()
 	d.expectChar('.')
 	d.skipWhitespace()
@@ -493,7 +493,7 @@ func (d *decoder) decodeEnumItem() {
 	d.addEnumItem(&item)
 }
 
-func (d *decoder) decodeTags(tags *Tags) {
+func (d *decoder) decodeTags(tags *rbxdump.Tags) {
 	for d.checkChar('[') {
 		d.skipWhitespace()
 		tags.SetTag(d.decodeTag())
@@ -506,13 +506,16 @@ func (d *decoder) decodeTag() string {
 }
 
 // Decode parses an API dump from r.
-func Decode(r io.Reader) (root *Root, err error) {
+func Decode(r io.Reader) (root *rbxdump.Root, err error) {
 	br, ok := r.(io.ByteReader)
 	if !ok {
 		br = bufio.NewReader(r)
 	}
 	d := decoder{
-		root: &Root{},
+		root: &rbxdump.Root{
+			Classes: make(map[string]*rbxdump.Class),
+			Enums:   make(map[string]*rbxdump.Enum),
+		},
 		r:    br,
 		next: make([]byte, 0, 9),
 		line: 1,

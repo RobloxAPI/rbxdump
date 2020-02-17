@@ -1,4 +1,4 @@
-package rbxapidump
+package legacy
 
 type charCheck struct {
 	// Whether leading/trailing spaces are valid.

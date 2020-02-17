@@ -1,180 +1,133 @@
+// The diff package provides operations for diffing and patching rbxdump
+// structures.
 package diff
 
 import (
 	"github.com/robloxapi/rbxapi"
-	"github.com/robloxapi/rbxapi/patch"
-	"strconv"
-	"strings"
 )
 
-// toString converts common API value types to strings.
-func toString(v interface{}) string {
-	switch v := v.(type) {
-	case bool:
-		if v {
-			return "true"
-		}
-		return "false"
-	case int:
-		return strconv.Itoa(v)
-	case string:
-		return v
-	case rbxapi.Type:
-		return v.String()
-	case []string:
-		return "[" + strings.Join(v, ", ") + "]"
-	case rbxapi.Parameters:
-		n := v.GetLength()
-		ss := make([]string, n)
-		for i := 0; i < n; i++ {
-			param := v.GetParameter(i)
-			ss[i] = param.GetType().String() + " " + param.GetName()
-			if def, ok := param.GetDefault(); ok {
-				ss[i] += " = " + def
-			}
-		}
-		return "(" + strings.Join(ss, ", ") + ")"
+// Differ is implemented by any value that has a Diff method, which returns
+// the differences between two structures as a list of Actions.
+type Differ interface {
+	Diff() []Action
+}
+
+// Patcher is implemented by any value that has a Patch method, which applies
+// a given list of Actions to a structure. Actions with information that is
+// irrelevant, incomplete, or invalid can be ignored.
+//
+// Ideally, when the API's "origin" and "target" are compared with a Differ,
+// and the returned list of Actions are passed to a Patcher, the end result is
+// that origin is transformed to match target exactly.
+//
+// Implementations must ensure that values contained within action Fields are
+// copied, so that they are not shared between structures.
+type Patcher interface {
+	Patch([]Action)
+}
+
+// Type indicates the kind of transformation performed by an Action.
+type Type int
+
+const (
+	Remove Type = -1 // The action removes data.
+	Change Type = 0  // The action changes data.
+	Add    Type = 1  // The action adds data.
+)
+
+// String returns a string representation of the action type.
+func (t Type) String() string {
+	switch t {
+	case Remove:
+		return "Remove"
+	case Change:
+		return "Change"
+	case Add:
+		return "Add"
 	}
-	return "<unknown value>"
+	return "<invalid>"
 }
 
-func tagsToString(tags []string) string {
-	if len(tags) == 0 {
-		return ""
+// Element indicates the type of element to which an Action applies.
+type Element int
+
+const (
+	_ Element = iota - 1
+	Invalid
+	Class
+	Property
+	Function
+	Event
+	Callback
+	Enum
+	EnumItem
+)
+
+// FromElement returns the Element corresponding to the given rbxdump element
+// type or a pointer to such. Returns Invalid for any other type.
+func FromElement(e interface{}) Element {
+	switch e.(type) {
+	case rbxdump.Class, *rbxdump.Class:
+		return Class
+	case rbxdump.Property, *rbxdump.Property:
+		return Property
+	case rbxdump.Function, *rbxdump.Function:
+		return Function
+	case rbxdump.Event, *rbxdump.Event:
+		return Event
+	case rbxdump.Callback, *rbxdump.Callback:
+		return Callback
+	case rbxdump.Enum, *rbxdump.Enum:
+		return Enum
+	case rbxdump.EnumItem, *rbxdump.EnumItem:
+		return EnumItem
 	}
-	return " " + toString(tags)
+	return Invalid
 }
 
-// ClassAction represents a patch.Action that applies to a rbxapi.Class.
-type ClassAction struct {
-	Type  patch.Type
-	Class rbxapi.Class
-	Field string
-	Prev  interface{}
-	Next  interface{}
-}
-
-func (a *ClassAction) GetClass() rbxapi.Class { return a.Class }
-func (a *ClassAction) GetType() patch.Type    { return a.Type }
-func (a *ClassAction) GetField() string       { return a.Field }
-func (a *ClassAction) GetPrev() interface{}   { return a.Prev }
-func (a *ClassAction) GetNext() interface{}   { return a.Next }
-func (a *ClassAction) String() string {
-	switch a.Type {
-	case patch.Add, patch.Remove:
-		return a.Type.String() +
-			" Class " + a.Class.GetName() +
-			tagsToString(a.Class.GetTags())
-	case patch.Change:
-		return a.Type.String() +
-			" field " + a.Field +
-			" of class " + a.Class.GetName() +
-			" from " + toString(a.Prev) +
-			" to " + toString(a.Next)
+// String returns a string representation of the element type.
+func (e Element) String() string {
+	switch e {
+	case Class:
+		return "Class"
+	case Property:
+		return "Property"
+	case Function:
+		return "Function"
+	case Event:
+		return "Event"
+	case Callback:
+		return "Callback"
+	case Enum:
+		return "Enum"
+	case EnumItem:
+		return "EnumItem"
 	}
-	return ""
+	return "<invalid>"
 }
 
-// MemberAction represents a patch.Action that applies to a rbxapi.Member.
-type MemberAction struct {
-	Type   patch.Type
-	Class  rbxapi.Class
-	Member rbxapi.Member
-	Field  string
-	Prev   interface{}
-	Next   interface{}
+// IsValid returns whether the value is a valid element.
+func (e Element) IsValid() bool {
+	return Class <= e && e <= EnumItem
 }
 
-func (a *MemberAction) GetClass() rbxapi.Class   { return a.Class }
-func (a *MemberAction) GetMember() rbxapi.Member { return a.Member }
-func (a *MemberAction) GetType() patch.Type      { return a.Type }
-func (a *MemberAction) GetField() string         { return a.Field }
-func (a *MemberAction) GetPrev() interface{}     { return a.Prev }
-func (a *MemberAction) GetNext() interface{}     { return a.Next }
-func (a *MemberAction) String() string {
-	var class string
-	if a.Class != nil {
-		class = a.Class.GetName() + "."
-	}
-	switch a.Type {
-	case patch.Add, patch.Remove:
-		return a.Type.String() +
-			" " + a.Member.GetMemberType() +
-			" " + class + a.Member.GetName() +
-			tagsToString(a.Member.GetTags())
-	case patch.Change:
-		return a.Type.String() +
-			" field " + a.Field +
-			" of " + a.Member.GetMemberType() +
-			" " + class + a.Member.GetName() +
-			" from " + toString(a.Prev) +
-			" to " + toString(a.Next)
-	}
-	return ""
+// IsMember returns whether the element is a class member.
+func (e Element) IsMember() bool {
+	return Property <= e && e <= Callback
 }
 
-// EnumAction represents a patch.Action that applies to a rbxapi.Enum.
-type EnumAction struct {
-	Type  patch.Type
-	Enum  rbxapi.Enum
-	Field string
-	Prev  interface{}
-	Next  interface{}
-}
-
-func (a *EnumAction) GetEnum() rbxapi.Enum { return a.Enum }
-func (a *EnumAction) GetType() patch.Type  { return a.Type }
-func (a *EnumAction) GetField() string     { return a.Field }
-func (a *EnumAction) GetPrev() interface{} { return a.Prev }
-func (a *EnumAction) GetNext() interface{} { return a.Next }
-func (a *EnumAction) String() string {
-	switch a.Type {
-	case patch.Add, patch.Remove:
-		return a.Type.String() +
-			" Enum " + a.Enum.GetName() +
-			tagsToString(a.Enum.GetTags())
-	case patch.Change:
-		return a.Type.String() +
-			" field " + a.Field +
-			" of Enum " + a.Enum.GetName() +
-			" from " + toString(a.Prev) +
-			" to " + toString(a.Next)
-	}
-	return ""
-}
-
-// EnumItemAction represents a patch.Action that applies to a rbxapi.EnumItem.
-type EnumItemAction struct {
-	Type     patch.Type
-	Enum     rbxapi.Enum
-	EnumItem rbxapi.EnumItem
-	Field    string
-	Prev     interface{}
-	Next     interface{}
-}
-
-func (a *EnumItemAction) GetEnum() rbxapi.Enum         { return a.Enum }
-func (a *EnumItemAction) GetEnumItem() rbxapi.EnumItem { return a.EnumItem }
-func (a *EnumItemAction) GetType() patch.Type          { return a.Type }
-func (a *EnumItemAction) GetField() string             { return a.Field }
-func (a *EnumItemAction) GetPrev() interface{}         { return a.Prev }
-func (a *EnumItemAction) GetNext() interface{}         { return a.Next }
-func (a *EnumItemAction) String() string {
-	var enum string
-	if a.Enum != nil {
-		enum = a.Enum.GetName() + "."
-	}
-	switch a.Type {
-	case patch.Add, patch.Remove:
-		return a.Type.String() +
-			" EnumItem " + enum + a.EnumItem.GetName() +
-			tagsToString(a.EnumItem.GetTags())
-	case patch.Change:
-		return a.Type.String() +
-			" field " + a.Field +
-			" of EnumItem " + enum + a.EnumItem.GetName() +
-			" from " + toString(a.Prev) +
-			" to " + toString(a.Next)
-	}
-	return ""
+// Action describes a single unit of difference between two dump structures.
+type Action struct {
+	// Type is the kind of transformation performed by the action.
+	Type Type
+	// Element is the type of element to which the action applies.
+	Element Element
+	// Primary is the name of the primary element.
+	Primary string
+	// Secondary is the name of the secondary element. Applies only to Property,
+	// Function, Event, Callback, and EnumItem elements.
+	Secondary string
+	// Fields describes fields of the element. If Type is Add, this describes
+	// the initial values. If Type is Change, this describes the new values.
+	Fields rbxdump.Fields
 }
