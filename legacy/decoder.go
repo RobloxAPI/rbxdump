@@ -6,7 +6,7 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/robloxapi/rbxapi"
+	"github.com/robloxapi/rbxdump"
 )
 
 // SyntaxError indicates that a syntax error occurred while decoding.

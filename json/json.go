@@ -3,7 +3,7 @@ package json
 import (
 	"strconv"
 
-	"github.com/robloxapi/rbxapi"
+	"github.com/robloxapi/rbxdump"
 )
 
 // VersionError is an error indicating that the version of the JSON format is

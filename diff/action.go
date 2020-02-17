@@ -3,7 +3,7 @@
 package diff
 
 import (
-	"github.com/robloxapi/rbxapi"
+	"github.com/robloxapi/rbxdump"
 )
 
 // Differ is implemented by any value that has a Diff method, which returns

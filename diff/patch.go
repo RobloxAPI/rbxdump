@@ -1,7 +1,7 @@
 package diff
 
 import (
-	"github.com/robloxapi/rbxapi"
+	"github.com/robloxapi/rbxdump"
 )
 
 // Patch is used to transform the embedded rbxdump.Root by applying a list of

@@ -1,7 +1,7 @@
 package diff
 
 import (
-	"github.com/robloxapi/rbxapi"
+	"github.com/robloxapi/rbxdump"
 )
 
 // compareTags compares two string slices.

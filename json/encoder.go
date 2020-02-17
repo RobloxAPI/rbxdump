@@ -5,7 +5,7 @@ import (
 	"io"
 	"sort"
 
-	"github.com/robloxapi/rbxapi"
+	"github.com/robloxapi/rbxdump"
 )
 
 // treeNode represents one node of a class inheritance tree.

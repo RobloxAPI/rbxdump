@@ -5,7 +5,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/robloxapi/rbxapi"
+	"github.com/robloxapi/rbxdump"
 )
 
 func (root *jRoot) UnmarshalJSON(b []byte) (err error) {

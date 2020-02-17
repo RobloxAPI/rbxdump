@@ -6,7 +6,7 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/robloxapi/rbxapi"
+	"github.com/robloxapi/rbxdump"
 )
 
 type encoder struct {
