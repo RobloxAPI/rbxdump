@@ -1,3 +1,5 @@
+// The legacy package is used to serialize between rbxdump and Roblox legacy API
+// dump format.
 package legacy
 
 import (

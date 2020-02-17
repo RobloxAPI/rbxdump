@@ -1,3 +1,5 @@
+// The json package is used to serialize between rbxdump and Roblox JSON API
+// dump format.
 package json
 
 import (

@@ -1,4 +1,4 @@
-// The rbxdump package is used to serialize Roblox Lua API dumps.
+// The rbxdump package is used to represent Roblox Lua API dumps.
 package rbxdump
 
 import "sort"
@@ -7,16 +7,17 @@ import "sort"
 type Fields map[string]interface{}
 
 // Fielder is implemented by any value that can get and set its fields from a
-// Fields value.
+// Fields map.
 type Fielder interface {
-	// Fields returns the set of fields present in the value.
+	// Fields returns the set of fields present in the value. Values may be
+	// retained by the implementation.
 	Fields() Fields
 	// SetFields sets the fields of the value. Values must not be retained; they
 	// should be copied if necessary. Invalid fields are ignored.
 	SetFields(Fields)
 }
 
-// Root represents the top-level structure of an API.
+// Root represents the top-level structure of an API dump.
 type Root struct {
 	Classes map[string]*Class
 	Enums   map[string]*Enum
@@ -57,6 +58,7 @@ func (root *Root) Copy() *Root {
 	return croot
 }
 
+// Fields implements the Fielder interface.
 func (root *Root) Fields() Fields {
 	return Fields{
 		"Classes": root.Classes,
@@ -64,6 +66,7 @@ func (root *Root) Fields() Fields {
 	}
 }
 
+// SetFields implements the Fielder interface.
 func (root *Root) SetFields(fields Fields) {
 	if v, ok := fields["Classes"]; ok {
 		if v, ok := v.(map[string]*Class); ok {
@@ -83,7 +86,7 @@ func (root *Root) SetFields(fields Fields) {
 	}
 }
 
-// Class represents a class descriptor.
+// Class represents a class defined in an API dump.
 type Class struct {
 	Name           string
 	Superclass     string
@@ -92,14 +95,20 @@ type Class struct {
 	Tags
 }
 
+// Member represents a member of a Class.
 type Member interface {
 	Fielder
+	// member prevents external types from implementing the interface.
 	member()
+	// MemberType returns a string indicating the type of member.
 	MemberType() string
+	// MemberName returns the name of the member.
 	MemberName() string
+	// MemberCopy returns a deep copy of the member.
 	MemberCopy() Member
 }
 
+// MemberTypeOrder returns the preferred order of each type of member.
 func MemberTypeOrder(memberType string) int {
 	switch memberType {
 	case "Property":
@@ -114,7 +123,7 @@ func MemberTypeOrder(memberType string) int {
 	return -1
 }
 
-// GetMembers returns a list of members belonging to the class.
+// GetMembers returns a list of members belonging to the class, sorted by name.
 func (class *Class) GetMembers() []Member {
 	list := make([]Member, 0, len(class.Members))
 	for _, member := range class.Members {
@@ -124,9 +133,7 @@ func (class *Class) GetMembers() []Member {
 	return list
 }
 
-// Copy returns a deep copy of the class descriptor.
-//
-// Copy implements the Class interface.
+// Copy returns a deep copy of the class.
 func (class *Class) Copy() *Class {
 	cclass := *class
 	cclass.Members = make(map[string]Member, len(class.Members))
@@ -137,6 +144,7 @@ func (class *Class) Copy() *Class {
 	return &cclass
 }
 
+// Fields implements the Fielder interface.
 func (class *Class) Fields() Fields {
 	return Fields{
 		"Name":           class.Name,
@@ -147,6 +155,7 @@ func (class *Class) Fields() Fields {
 	}
 }
 
+// SetFields implements the Fielder interface.
 func (class *Class) SetFields(fields Fields) {
 	if v, ok := fields["Name"]; ok {
 		if v, ok := v.(string); ok {
@@ -178,7 +187,7 @@ func (class *Class) SetFields(fields Fields) {
 	}
 }
 
-// Property represents a class member of the Property member type.
+// Property is a Member that represents a class property.
 type Property struct {
 	Name          string
 	ValueType     Type
@@ -194,12 +203,18 @@ type Property struct {
 func (Property) member() {}
 
 // MemberType returns a string indicating the the type of member.
+//
+// MemberType implements the Member interface.
 func (member *Property) MemberType() string { return "Property" }
 
 // MemberName returns the name of the member.
+//
+// MemberType implements the Member interface.
 func (member *Property) MemberName() string { return member.Name }
 
 // MemberCopy returns a deep copy of the member.
+//
+// MemberType implements the Member interface.
 func (member *Property) MemberCopy() Member { return member.Copy() }
 
 // Copy returns a deep copy of the property.
@@ -209,6 +224,7 @@ func (member *Property) Copy() *Property {
 	return &cmember
 }
 
+// Fields implements the Fielder interface.
 func (member *Property) Fields() Fields {
 	return Fields{
 		"Name":          member.Name,
@@ -222,6 +238,7 @@ func (member *Property) Fields() Fields {
 	}
 }
 
+// SetFields implements the Fielder interface.
 func (member *Property) SetFields(fields Fields) {
 	if v, ok := fields["Name"]; ok {
 		if v, ok := v.(string); ok {
@@ -265,7 +282,7 @@ func (member *Property) SetFields(fields Fields) {
 	}
 }
 
-// Function represents a class member of the Function member type.
+// Function is a Member that represents a class function.
 type Function struct {
 	Name       string
 	Parameters []Parameter
@@ -278,15 +295,21 @@ type Function struct {
 func (Function) member() {}
 
 // MemberType returns a string indicating the the type of member.
+//
+// MemberType implements the Member interface.
 func (member *Function) MemberType() string { return "Function" }
 
 // MemberName returns the name of the member.
+//
+// MemberType implements the Member interface.
 func (member *Function) MemberName() string { return member.Name }
 
 // MemberCopy returns a deep copy of the member.
+//
+// MemberType implements the Member interface.
 func (member *Function) MemberCopy() Member { return member.Copy() }
 
-// Copy returns a deep copy of the member descriptor.
+// Copy returns a deep copy of the function.
 func (member *Function) Copy() *Function {
 	cmember := *member
 	cmember.Parameters = CopyParams(member.Parameters)
@@ -294,6 +317,7 @@ func (member *Function) Copy() *Function {
 	return &cmember
 }
 
+// Fields implements the Fielder interface.
 func (member *Function) Fields() Fields {
 	return Fields{
 		"Name":       member.Name,
@@ -304,6 +328,7 @@ func (member *Function) Fields() Fields {
 	}
 }
 
+// SetFields implements the Fielder interface.
 func (member *Function) SetFields(fields Fields) {
 	if v, ok := fields["Name"]; ok {
 		if v, ok := v.(string); ok {
@@ -332,7 +357,7 @@ func (member *Function) SetFields(fields Fields) {
 	}
 }
 
-// Event represents a class member of the Event member type.
+// Event is a Member that represents a class event.
 type Event struct {
 	Name       string
 	Parameters []Parameter
@@ -344,15 +369,21 @@ type Event struct {
 func (Event) member() {}
 
 // MemberType returns a string indicating the the type of member.
+//
+// MemberType implements the Member interface.
 func (member *Event) MemberType() string { return "Event" }
 
 // MemberName returns the name of the member.
+//
+// MemberType implements the Member interface.
 func (member *Event) MemberName() string { return member.Name }
 
 // MemberCopy returns a deep copy of the member.
+//
+// MemberType implements the Member interface.
 func (member *Event) MemberCopy() Member { return member.Copy() }
 
-// Copy returns a deep copy of the member descriptor.
+// Copy returns a deep copy of the event.
 func (member *Event) Copy() *Event {
 	cmember := *member
 	cmember.Parameters = CopyParams(member.Parameters)
@@ -360,6 +391,7 @@ func (member *Event) Copy() *Event {
 	return &cmember
 }
 
+// Fields implements the Fielder interface.
 func (member *Event) Fields() Fields {
 	return Fields{
 		"Name":       member.Name,
@@ -369,6 +401,7 @@ func (member *Event) Fields() Fields {
 	}
 }
 
+// SetFields implements the Fielder interface.
 func (member *Event) SetFields(fields Fields) {
 	if v, ok := fields["Name"]; ok {
 		if v, ok := v.(string); ok {
@@ -392,7 +425,7 @@ func (member *Event) SetFields(fields Fields) {
 	}
 }
 
-// Callback represents a class member of the Callback member type.
+// Callback is a Member that represents a class callback.
 type Callback struct {
 	Name       string
 	Parameters []Parameter
@@ -405,15 +438,21 @@ type Callback struct {
 func (Callback) member() {}
 
 // MemberType returns a string indicating the the type of member.
+//
+// MemberType implements the Member interface.
 func (member *Callback) MemberType() string { return "Callback" }
 
 // MemberName returns the name of the member.
+//
+// MemberType implements the Member interface.
 func (member *Callback) MemberName() string { return member.Name }
 
 // MemberCopy returns a deep copy of the member.
+//
+// MemberType implements the Member interface.
 func (member *Callback) MemberCopy() Member { return member.Copy() }
 
-// Copy returns a deep copy of the member descriptor.
+// Copy returns a deep copy of the callback.
 func (member *Callback) Copy() *Callback {
 	cmember := *member
 	cmember.Parameters = CopyParams(member.Parameters)
@@ -421,6 +460,7 @@ func (member *Callback) Copy() *Callback {
 	return &cmember
 }
 
+// Fields implements the Fielder interface.
 func (member *Callback) Fields() Fields {
 	return Fields{
 		"Name":       member.Name,
@@ -431,6 +471,7 @@ func (member *Callback) Fields() Fields {
 	}
 }
 
+// SetFields implements the Fielder interface.
 func (member *Callback) SetFields(fields Fields) {
 	if v, ok := fields["Name"]; ok {
 		if v, ok := v.(string); ok {
@@ -459,7 +500,7 @@ func (member *Callback) SetFields(fields Fields) {
 	}
 }
 
-// Enum represents an enum descriptor.
+// Enum represents an enum defined in an API dump.
 type Enum struct {
 	Name  string
 	Items map[string]*EnumItem
@@ -476,7 +517,7 @@ func (enum *Enum) GetEnumItems() []*EnumItem {
 	return list
 }
 
-// Copy returns a deep copy of the enum descriptor.
+// Copy returns a deep copy of the enum.
 func (enum *Enum) Copy() *Enum {
 	cenum := *enum
 	cenum.Items = make(map[string]*EnumItem, len(enum.Items))
@@ -487,6 +528,7 @@ func (enum *Enum) Copy() *Enum {
 	return &cenum
 }
 
+// Fields implements the Fielder interface.
 func (enum *Enum) Fields() Fields {
 	return Fields{
 		"Name":      enum.Name,
@@ -495,6 +537,7 @@ func (enum *Enum) Fields() Fields {
 	}
 }
 
+// SetFields implements the Fielder interface.
 func (enum *Enum) SetFields(fields Fields) {
 	if v, ok := fields["Name"]; ok {
 		if v, ok := v.(string); ok {
@@ -516,7 +559,7 @@ func (enum *Enum) SetFields(fields Fields) {
 	}
 }
 
-// EnumItem represents an enum item descriptor.
+// EnumItem represents an enum item.
 type EnumItem struct {
 	Name  string
 	Value int
@@ -524,13 +567,14 @@ type EnumItem struct {
 	Tags
 }
 
-// Copy returns a deep copy of the enum item descriptor.
+// Copy returns a deep copy of the enum item.
 func (item *EnumItem) Copy() *EnumItem {
 	citem := *item
 	citem.Tags = Tags(item.GetTags())
 	return &citem
 }
 
+// Fields implements the Fielder interface.
 func (item *EnumItem) Fields() Fields {
 	return Fields{
 		"Name":  item.Name,
@@ -539,6 +583,7 @@ func (item *EnumItem) Fields() Fields {
 	}
 }
 
+// SetFields implements the Fielder interface.
 func (item *EnumItem) SetFields(fields Fields) {
 	if v, ok := fields["Name"]; ok {
 		if v, ok := v.(string); ok {
