@@ -112,17 +112,17 @@ func (a jEnums) Len() int           { return len(a) }
 func (a jEnums) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a jEnums) Less(i, j int) bool { return a[i].Name < a[j].Name }
 
-// jEnumItems sorts enum items by index, then value, then name.
+// jEnumItems sorts enum items by index, then name, then value.
 type jEnumItems []jEnumItem
 
 func (a jEnumItems) Len() int      { return len(a) }
 func (a jEnumItems) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 func (a jEnumItems) Less(i, j int) bool {
 	if a[i].index == a[j].index {
-		if a[i].Value == a[j].Value {
-			return a[i].Name < a[j].Name
+		if a[i].Name == a[j].Name {
+			return a[i].Value < a[j].Value
 		}
-		return a[i].Value < a[j].Value
+		return a[i].Name < a[j].Name
 	}
 	return a[i].index < a[j].index
 }
