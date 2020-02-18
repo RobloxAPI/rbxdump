@@ -108,21 +108,6 @@ type Member interface {
 	MemberCopy() Member
 }
 
-// MemberTypeOrder returns the preferred order of each type of member.
-func MemberTypeOrder(memberType string) int {
-	switch memberType {
-	case "Property":
-		return 0
-	case "Function":
-		return 1
-	case "Event":
-		return 2
-	case "Callback":
-		return 3
-	}
-	return -1
-}
-
 // GetMembers returns a list of members belonging to the class, sorted by name.
 func (class *Class) GetMembers() []Member {
 	list := make([]Member, 0, len(class.Members))

@@ -73,14 +73,29 @@ func sortByInheritance(classes []jClass) {
 	sort.Sort(jClasses(classes))
 }
 
+// memberTypeOrder returns the preferred order of each type of member.
+func memberTypeOrder(member rbxdump.Member) int {
+	switch member.(type) {
+	case *rbxdump.Callback:
+		return 4
+	case *rbxdump.Event:
+		return 3
+	case *rbxdump.Function:
+		return 1
+	case *rbxdump.Property:
+		return 0
+	}
+	return -1
+}
+
 // jMembers sorts members by member type, then by name.
 type jMembers []jMember
 
 func (a jMembers) Len() int      { return len(a) }
 func (a jMembers) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 func (a jMembers) Less(i, j int) bool {
-	ti := rbxdump.MemberTypeOrder(a[i].MemberType())
-	tj := rbxdump.MemberTypeOrder(a[j].MemberType())
+	ti := memberTypeOrder(a[i].Member)
+	tj := memberTypeOrder(a[j].Member)
 	if ti == tj {
 		if a[i].yields == a[j].yields {
 			return a[i].MemberName() < a[j].MemberName()
