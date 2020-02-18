@@ -134,7 +134,7 @@ func (class *Class) Copy() *Class {
 func (class *Class) Fields() Fields {
 	return Fields{
 		"Name":           class.Name,
-		"Supere":         class.Superclass,
+		"Superclass":     class.Superclass,
 		"MemoryCategory": class.MemoryCategory,
 		"Members":        class.Members,
 		"Tags":           class.Tags,
