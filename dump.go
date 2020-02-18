@@ -619,7 +619,7 @@ func (typ Type) String() string {
 // Tagger is implemented by any value that contains a set of tags.
 type Tagger interface {
 	// GetTag returns whether the given tag is present.
-	GetTag() bool
+	GetTag(tag string) bool
 	// GetTags returns a list of all present tags. Implementations must not
 	// retain the result.
 	GetTags() []string
