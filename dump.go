@@ -517,9 +517,17 @@ type Enum struct {
 // sortEnumItems sorts Member values by Index, then Value, then Name.
 type sortEnumItems []*EnumItem
 
-func (a sortEnumItems) Len() int           { return len(a) }
-func (a sortEnumItems) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a sortEnumItems) Less(i, j int) bool { return a[i].Name < a[j].Name }
+func (a sortEnumItems) Len() int      { return len(a) }
+func (a sortEnumItems) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a sortEnumItems) Less(i, j int) bool {
+	if a[i].Index == a[j].Index {
+		if a[i].Name == a[j].Name {
+			return a[i].Value < a[j].Value
+		}
+		return a[i].Name < a[j].Name
+	}
+	return a[i].Index < a[j].Index
+}
 
 // GetEnumItems returns a list of items of the enum.
 func (enum *Enum) GetEnumItems() []*EnumItem {
