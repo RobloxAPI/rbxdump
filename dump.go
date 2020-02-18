@@ -98,6 +98,7 @@ type Class struct {
 // Member represents a member of a Class.
 type Member interface {
 	Fielder
+	Tagger
 	// member prevents external types from implementing the interface.
 	member()
 	// MemberType returns a string indicating the type of member.
