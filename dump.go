@@ -23,15 +23,29 @@ type Root struct {
 	Enums   map[string]*Enum
 }
 
+// sortClasses sorts Class values by name.
+type sortClasses []*Class
+
+func (a sortClasses) Len() int           { return len(a) }
+func (a sortClasses) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a sortClasses) Less(i, j int) bool { return a[i].Name < a[j].Name }
+
 // GetClasses returns the Classes in the root as a slice, ordered by name.
 func (root *Root) GetClasses() []*Class {
 	list := make([]*Class, 0, len(root.Classes))
 	for _, class := range root.Classes {
 		list = append(list, class)
 	}
-	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
+	sort.Sort(sortClasses(list))
 	return list
 }
+
+// sortEnums sorts Enum values by name.
+type sortEnums []*Enum
+
+func (a sortEnums) Len() int           { return len(a) }
+func (a sortEnums) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a sortEnums) Less(i, j int) bool { return a[i].Name < a[j].Name }
 
 // GetEnums returns the Enums in the root as a slice, ordered by name.
 func (root *Root) GetEnums() []*Enum {
@@ -39,7 +53,7 @@ func (root *Root) GetEnums() []*Enum {
 	for _, enum := range root.Enums {
 		list = append(list, enum)
 	}
-	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
+	sort.Sort(sortEnums(list))
 	return list
 }
 
@@ -109,13 +123,20 @@ type Member interface {
 	MemberCopy() Member
 }
 
+// sortMembers sorts Member values by name.
+type sortMembers []Member
+
+func (a sortMembers) Len() int           { return len(a) }
+func (a sortMembers) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a sortMembers) Less(i, j int) bool { return a[i].MemberName() < a[j].MemberName() }
+
 // GetMembers returns a list of members belonging to the class, sorted by name.
 func (class *Class) GetMembers() []Member {
 	list := make([]Member, 0, len(class.Members))
 	for _, member := range class.Members {
 		list = append(list, member)
 	}
-	sort.Slice(list, func(i, j int) bool { return list[i].MemberName() < list[j].MemberName() })
+	sort.Sort(sortMembers(list))
 	return list
 }
 
@@ -493,13 +514,20 @@ type Enum struct {
 	Tags
 }
 
+// sortEnumItems sorts Member values by Index, then Value, then Name.
+type sortEnumItems []*EnumItem
+
+func (a sortEnumItems) Len() int           { return len(a) }
+func (a sortEnumItems) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a sortEnumItems) Less(i, j int) bool { return a[i].Name < a[j].Name }
+
 // GetEnumItems returns a list of items of the enum.
 func (enum *Enum) GetEnumItems() []*EnumItem {
 	list := make([]*EnumItem, 0, len(enum.Items))
 	for _, item := range enum.Items {
 		list = append(list, item)
 	}
-	sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
+	sort.Sort(sortEnumItems(list))
 	return list
 }
 
