@@ -564,7 +564,7 @@ func (enum *Enum) SetFields(fields Fields) {
 			enum.Name = v
 		}
 	}
-	if v, ok := fields["EnumItems"]; ok {
+	if v, ok := fields["Items"]; ok {
 		if v, ok := v.(map[string]*EnumItem); ok {
 			enum.Items = make(map[string]*EnumItem, len(v))
 			for k, v := range v {
