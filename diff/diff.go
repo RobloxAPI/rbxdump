@@ -41,6 +41,61 @@ func compareParams(prev, next []rbxdump.Parameter) bool {
 	return true
 }
 
+// compareMemberTypes returns whether two rbxdump.Members are the same type.
+func compareMemberTypes(prev, next rbxdump.Member) (ok bool) {
+	switch next.(type) {
+	case *rbxdump.Property:
+		_, ok = prev.(*rbxdump.Property)
+	case *rbxdump.Function:
+		_, ok = prev.(*rbxdump.Function)
+	case *rbxdump.Event:
+		_, ok = prev.(*rbxdump.Event)
+	case *rbxdump.Callback:
+		_, ok = prev.(*rbxdump.Callback)
+	case nil:
+		// Return true so that prev can be compared with nil.
+		ok = true
+	}
+	return ok
+}
+
+// compareFields compares two sets of fields, returning the difference. Assumes
+// both contain the same fields, each field having the same type. Only handles
+// field types returned by rbxdump elements.
+func compareFields(prev, next rbxdump.Fields) rbxdump.Fields {
+	fields := rbxdump.Fields{}
+	for name, p := range prev {
+		n := next[name]
+		switch p := p.(type) {
+		case bool:
+			if n.(bool) != p {
+				fields[name] = n
+			}
+		case string:
+			if n.(string) != p {
+				fields[name] = n
+			}
+		case int:
+			if n.(int) != p {
+				fields[name] = n
+			}
+		case rbxdump.Type:
+			if n.(rbxdump.Type) != p {
+				fields[name] = n
+			}
+		case rbxdump.Tags:
+			if !compareTags(p, n.(rbxdump.Tags)) {
+				fields[name] = n
+			}
+		case []rbxdump.Parameter:
+			if !compareParams(p, n.([]rbxdump.Parameter)) {
+				fields[name] = n
+			}
+		}
+	}
+	return fields
+}
+
 // Diff is a Differ that finds differences between two rbxdump.Root values.
 type Diff struct {
 	Prev, Next *rbxdump.Root
@@ -48,91 +103,41 @@ type Diff struct {
 
 // Diff implements the Differ interface.
 func (d Diff) Diff() (actions []Action) {
-	{
-		var names map[string]struct{}
-		if d.Prev != nil {
-			classes := d.Prev.GetClasses()
-			names = make(map[string]struct{}, len(classes))
-			if d.Next == nil {
-				for _, p := range classes {
-					names[p.Name] = struct{}{}
-					actions = append(actions, Action{
-						Type:    Remove,
-						Element: Class,
-						Primary: p.Name,
-					})
-				}
-			} else {
-				for _, p := range classes {
-					names[p.Name] = struct{}{}
-					n := d.Next.Classes[p.Name]
-					if n == nil {
-						actions = append(actions, Action{
-							Type:    Remove,
-							Element: Class,
-							Primary: p.Name,
-						})
-						continue
-					}
-					actions = append(actions, (&DiffClass{p, n, false}).Diff()...)
-				}
+	if d.Prev != nil && d.Next != nil {
+		for _, p := range d.Prev.GetClasses() {
+			n := d.Next.Classes[p.Name]
+			actions = append(actions, DiffClass{Prev: p, Next: n}.Diff()...)
+		}
+		for _, n := range d.Next.GetClasses() {
+			if p := d.Prev.Classes[n.Name]; p == nil {
+				actions = append(actions, DiffClass{Next: n}.Diff()...)
 			}
 		}
-		if d.Next != nil {
-			for _, n := range d.Next.GetClasses() {
-				if _, ok := names[n.Name]; !ok {
-					actions = append(actions, Action{
-						Type:    Add,
-						Element: Class,
-						Primary: n.Name,
-					})
-				}
+		for _, p := range d.Prev.GetEnums() {
+			n := d.Next.Enums[p.Name]
+			actions = append(actions, DiffEnum{Prev: p, Next: n}.Diff()...)
+		}
+		for _, n := range d.Next.GetEnums() {
+			if p := d.Prev.Enums[n.Name]; p == nil {
+				actions = append(actions, DiffEnum{Next: n}.Diff()...)
 			}
+		}
+	} else if d.Prev != nil {
+		for _, p := range d.Prev.GetClasses() {
+			actions = append(actions, DiffClass{Prev: p}.Diff()...)
+		}
+		for _, p := range d.Prev.GetEnums() {
+			actions = append(actions, DiffEnum{Prev: p}.Diff()...)
+		}
+	} else if d.Next != nil {
+		for _, n := range d.Next.GetClasses() {
+			actions = append(actions, DiffClass{Next: n}.Diff()...)
+		}
+		for _, n := range d.Next.GetEnums() {
+			actions = append(actions, DiffEnum{Next: n}.Diff()...)
 		}
 	}
-	{
-		var names map[string]struct{}
-		if d.Prev != nil {
-			enums := d.Prev.GetEnums()
-			names = make(map[string]struct{}, len(enums))
-			if d.Next == nil {
-				for _, p := range enums {
-					names[p.Name] = struct{}{}
-					actions = append(actions, Action{
-						Type:    Remove,
-						Element: Enum,
-						Primary: p.Name,
-					})
-				}
-			} else {
-				for _, p := range enums {
-					names[p.Name] = struct{}{}
-					n := d.Next.Enums[p.Name]
-					if n == nil {
-						actions = append(actions, Action{
-							Type:    Remove,
-							Element: Enum,
-							Primary: p.Name,
-						})
-						continue
-					}
-					actions = append(actions, (&DiffEnum{p, n, false}).Diff()...)
-				}
-			}
-		}
-		if d.Next != nil {
-			for _, n := range d.Next.GetEnums() {
-				if _, ok := names[n.Name]; !ok {
-					actions = append(actions, Action{
-						Type:    Add,
-						Element: Enum,
-						Primary: n.Name,
-					})
-				}
-			}
-		}
-	}
-	return
+	return actions
 }
 
 // DiffClass is a Differ that finds differences between two rbxdump.Class
@@ -145,405 +150,114 @@ type DiffClass struct {
 
 // Diff implements the Differ interface.
 func (d DiffClass) Diff() (actions []Action) {
+	// Handle both-nil case.
 	if d.Prev == nil && d.Next == nil {
-		return
-	} else if d.Prev == nil {
+		return actions
+	}
+
+	// Handle either-nil case.
+	if d.Prev == nil {
 		actions = append(actions, Action{
 			Type:    Add,
 			Element: Class,
 			Primary: d.Next.Name,
+			Fields:  d.Next.Fields(),
 		})
-		return
+		if !d.ExcludeMembers {
+			for _, member := range d.Next.GetMembers() {
+				actions = append(actions, DiffMember{Class: d.Next.Name, Next: member}.Diff()...)
+			}
+		}
+		return actions
 	} else if d.Next == nil {
 		actions = append(actions, Action{
 			Type:    Remove,
 			Element: Class,
 			Primary: d.Prev.Name,
 		})
-		return
+		return actions
 	}
-	if p, n := (d.Prev.Name), d.Next.Name; p != n {
+
+	// Compare fields.
+	if fields := compareFields(d.Prev.Fields(), d.Next.Fields()); len(fields) > 0 {
 		actions = append(actions, Action{
 			Type:    Change,
 			Element: Class,
 			Primary: d.Prev.Name,
-			Fields:  rbxdump.Fields{"Name": n},
+			Fields:  fields,
 		})
 	}
-	if p, n := d.Prev.Superclass, d.Next.Superclass; p != n {
-		actions = append(actions, Action{
-			Type:    Change,
-			Element: Class,
-			Primary: d.Prev.Name,
-			Fields:  rbxdump.Fields{"Superclass": n},
-		})
+
+	// Compare members.
+	if d.ExcludeMembers {
+		return actions
 	}
-	if !compareTags(d.Prev.Tags, d.Next.Tags) {
-		actions = append(actions, Action{
-			Type:    Change,
-			Element: Class,
-			Primary: d.Prev.Name,
-			Fields:  rbxdump.Fields{"Tags": d.Next.GetTags()},
-		})
-	}
-	if !d.ExcludeMembers {
-		members := d.Prev.GetMembers()
-		names := make(map[string]struct{}, len(members))
-		for _, p := range members {
-			names[p.MemberName()] = struct{}{}
-			n := d.Next.Members[p.MemberName()]
-			if n == nil {
-				actions = append(actions, Action{
-					Type:      Remove,
-					Element:   FromElement(p),
-					Primary:   d.Prev.Name,
-					Secondary: p.MemberName(),
-				})
-				continue
-			}
-			switch p := p.(type) {
-			case *rbxdump.Property:
-				if n, ok := n.(*rbxdump.Property); ok {
-					actions = append(actions, (&DiffProperty{d.Prev.Name, p, n}).Diff()...)
-					continue
-				}
-			case *rbxdump.Function:
-				if n, ok := n.(*rbxdump.Function); ok {
-					actions = append(actions, (&DiffFunction{d.Prev.Name, p, n}).Diff()...)
-					continue
-				}
-			case *rbxdump.Event:
-				if n, ok := n.(*rbxdump.Event); ok {
-					actions = append(actions, (&DiffEvent{d.Prev.Name, p, n}).Diff()...)
-					continue
-				}
-			case *rbxdump.Callback:
-				if n, ok := n.(*rbxdump.Callback); ok {
-					actions = append(actions, (&DiffCallback{d.Prev.Name, p, n}).Diff()...)
-					continue
-				}
-			}
-			actions = append(actions, Action{
-				Type:      Remove,
-				Element:   FromElement(p),
-				Primary:   d.Prev.Name,
-				Secondary: p.MemberName(),
-			})
-			actions = append(actions, Action{
-				Type:      Add,
-				Element:   FromElement(p),
-				Primary:   d.Prev.Name,
-				Secondary: p.MemberName(),
-			})
+	for _, p := range d.Prev.GetMembers() {
+		n := d.Next.Members[p.MemberName()]
+		if compareMemberTypes(p, n) {
+			actions = append(actions, DiffMember{Class: d.Prev.Name, Prev: p, Next: n}.Diff()...)
+			continue
 		}
-		for _, n := range d.Next.GetMembers() {
-			if _, ok := names[n.MemberName()]; !ok {
-				actions = append(actions, Action{
-					Type:      Add,
-					Element:   FromElement(n),
-					Primary:   d.Prev.Name,
-					Secondary: n.MemberName(),
-				})
-			}
+		// Member names match, but have different element types. Resolve by
+		// removing the previous and adding the next.
+		actions = append(actions, DiffMember{Class: d.Prev.Name, Prev: p}.Diff()...)
+		actions = append(actions, DiffMember{Class: d.Prev.Name, Next: n}.Diff()...)
+	}
+	for _, n := range d.Next.GetMembers() {
+		if _, ok := d.Prev.Members[n.MemberName()]; !ok {
+			actions = append(actions, DiffMember{Class: d.Prev.Name, Next: n}.Diff()...)
 		}
 	}
-	return
+
+	return actions
 }
 
-// DiffProperty is a Differ that finds differences between two
-// rbxdump.Property values.
-type DiffProperty struct {
+// DiffMember is a Differ that finds differences between two
+// rbxdump.Member values.
+type DiffMember struct {
 	// Class is the name of the outer structure of the Prev value.
 	Class      string
-	Prev, Next *rbxdump.Property
+	Prev, Next rbxdump.Member
 }
 
 // Diff implements the Differ interface.
-func (d DiffProperty) Diff() (actions []Action) {
+func (d DiffMember) Diff() (actions []Action) {
+	// Handle both-nil case.
 	if d.Prev == nil && d.Next == nil {
 		return
-	} else if d.Prev == nil {
+	}
+
+	// Handle either-nil case.
+	if d.Prev == nil {
 		actions = append(actions, Action{
 			Type:      Add,
-			Element:   Property,
+			Element:   FromElement(d.Next),
 			Primary:   d.Class,
-			Secondary: d.Next.Name,
+			Secondary: d.Next.MemberName(),
+			Fields:    d.Next.Fields(),
 		})
-		return
+		return actions
 	} else if d.Next == nil {
 		actions = append(actions, Action{
 			Type:      Remove,
-			Element:   Property,
+			Element:   FromElement(d.Prev),
 			Primary:   d.Class,
-			Secondary: d.Prev.Name,
+			Secondary: d.Prev.MemberName(),
 		})
-		return
+		return actions
 	}
-	if p, n := (d.Prev.Name), d.Next.Name; p != n {
-		actions = append(actions, Action{
-			Type:      Change,
-			Element:   Property,
-			Primary:   d.Class,
-			Secondary: d.Prev.Name,
-			Fields:    rbxdump.Fields{"Name": n},
-		})
-	}
-	if p, n := (d.Prev.ValueType), d.Next.ValueType; p != n {
-		actions = append(actions, Action{
-			Type:      Change,
-			Element:   Property,
-			Primary:   d.Class,
-			Secondary: d.Prev.Name,
-			Fields:    rbxdump.Fields{"ValueType": n},
-		})
-	}
-	pr, pw := d.Prev.ReadSecurity, d.Prev.WriteSecurity
-	nr, nw := d.Next.ReadSecurity, d.Next.WriteSecurity
-	if pr != nr {
-		actions = append(actions, Action{
-			Type:      Change,
-			Element:   Property,
-			Primary:   d.Class,
-			Secondary: d.Prev.Name,
-			Fields:    rbxdump.Fields{"ReadSecurity": nr},
-		})
-	}
-	if pw != nw {
-		actions = append(actions, Action{
-			Type:      Change,
-			Element:   Property,
-			Primary:   d.Class,
-			Secondary: d.Prev.Name,
-			Fields:    rbxdump.Fields{"WriteSecurity": nw},
-		})
-	}
-	if !compareTags(d.Prev.Tags, d.Next.Tags) {
-		actions = append(actions, Action{
-			Type:      Change,
-			Element:   Property,
-			Primary:   d.Class,
-			Secondary: d.Prev.Name,
-			Fields:    rbxdump.Fields{"Tags": d.Next.GetTags()},
-		})
-	}
-	return
-}
 
-// DiffFunction is a Differ that finds differences between two
-// rbxdump.Function values.
-type DiffFunction struct {
-	// Class is the name of the outer structure of the Prev value.
-	Class      string
-	Prev, Next *rbxdump.Function
-}
-
-// Diff implements the Differ interface.
-func (d DiffFunction) Diff() (actions []Action) {
-	if d.Prev == nil && d.Next == nil {
-		return
-	} else if d.Prev == nil {
-		actions = append(actions, Action{
-			Type:      Add,
-			Primary:   d.Class,
-			Secondary: d.Next.Name,
-		})
-		return
-	} else if d.Next == nil {
-		actions = append(actions,
-			Action{
-				Type:      Remove,
-				Primary:   d.Class,
-				Secondary: d.Prev.Name,
-			})
-		return
-	}
-	if p, n := (d.Prev.Name), d.Next.Name; p != n {
+	// Compare fields.
+	if fields := compareFields(d.Prev.Fields(), d.Next.Fields()); len(fields) > 0 {
 		actions = append(actions, Action{
 			Type:      Change,
-			Element:   Property,
+			Element:   FromElement(d.Prev),
 			Primary:   d.Class,
-			Secondary: d.Prev.Name,
-			Fields:    rbxdump.Fields{"Name": n},
+			Secondary: d.Prev.MemberName(),
+			Fields:    fields,
 		})
 	}
-	if !compareParams(d.Prev.Parameters, d.Next.Parameters) {
-		actions = append(actions, Action{
-			Type:      Change,
-			Element:   Property,
-			Primary:   d.Class,
-			Secondary: d.Prev.Name,
-			Fields:    rbxdump.Fields{"Parameters": rbxdump.CopyParams(d.Next.Parameters)},
-		})
-	}
-	if p, n := (d.Prev.ReturnType), d.Next.ReturnType; p != n {
-		actions = append(actions, Action{
-			Type:      Change,
-			Element:   Property,
-			Primary:   d.Class,
-			Secondary: d.Prev.Name,
-			Fields:    rbxdump.Fields{"ReturnType": n},
-		})
-	}
-	if p, n := (d.Prev.Security), d.Next.Security; p != n {
-		actions = append(actions, Action{
-			Type:      Change,
-			Element:   Property,
-			Primary:   d.Class,
-			Secondary: d.Prev.Name,
-			Fields:    rbxdump.Fields{"Security": n},
-		})
-	}
-	if !compareTags(d.Prev.Tags, d.Next.Tags) {
-		actions = append(actions, Action{
-			Type:      Change,
-			Element:   Property,
-			Primary:   d.Class,
-			Secondary: d.Prev.Name,
-			Fields:    rbxdump.Fields{"Tags": d.Next.GetTags()},
-		})
-	}
-	return
-}
-
-// DiffEvent is a Differ that finds differences between two rbxdump.Event
-// values.
-type DiffEvent struct {
-	// Class is the name of the outer structure of the Prev value.
-	Class      string
-	Prev, Next *rbxdump.Event
-}
-
-// Diff implements the Differ interface.
-func (d DiffEvent) Diff() (actions []Action) {
-	if d.Prev == nil && d.Next == nil {
-		return
-	} else if d.Prev == nil {
-		actions = append(actions, Action{
-			Type:      Add,
-			Primary:   d.Class,
-			Secondary: d.Next.Name,
-		})
-		return
-	} else if d.Next == nil {
-		actions = append(actions, Action{
-			Type:      Remove,
-			Primary:   d.Class,
-			Secondary: d.Prev.Name,
-		})
-		return
-	}
-	if p, n := (d.Prev.Name), d.Next.Name; p != n {
-		actions = append(actions, Action{
-			Type:      Change,
-			Element:   Property,
-			Primary:   d.Class,
-			Secondary: d.Prev.Name,
-			Fields:    rbxdump.Fields{"Name": n},
-		})
-	}
-	if !compareParams(d.Prev.Parameters, d.Next.Parameters) {
-		actions = append(actions, Action{
-			Type:      Change,
-			Element:   Property,
-			Primary:   d.Class,
-			Secondary: d.Prev.Name,
-			Fields:    rbxdump.Fields{"Parameters": rbxdump.CopyParams(d.Next.Parameters)},
-		})
-	}
-	if p, n := (d.Prev.Security), d.Next.Security; p != n {
-		actions = append(actions, Action{
-			Type:      Change,
-			Element:   Property,
-			Primary:   d.Class,
-			Secondary: d.Prev.Name,
-			Fields:    rbxdump.Fields{"Security": n},
-		})
-	}
-	if !compareTags(d.Prev.Tags, d.Next.Tags) {
-		actions = append(actions, Action{
-			Type:      Change,
-			Element:   Property,
-			Primary:   d.Class,
-			Secondary: d.Prev.Name,
-			Fields:    rbxdump.Fields{"Tags": d.Next.GetTags()},
-		})
-	}
-	return
-}
-
-// DiffCallback is a Differ that finds differences between two
-// rbxdump.Callback values.
-type DiffCallback struct {
-	// Class is the name of the outer structure of the Prev value.
-	Class      string
-	Prev, Next *rbxdump.Callback
-}
-
-// Diff implements the Differ interface.
-func (d DiffCallback) Diff() (actions []Action) {
-	if d.Prev == nil && d.Next == nil {
-		return
-	} else if d.Prev == nil {
-		actions = append(actions, Action{
-			Type:      Add,
-			Primary:   d.Class,
-			Secondary: d.Next.Name,
-		})
-		return
-	} else if d.Next == nil {
-		actions = append(actions, Action{
-			Type:      Remove,
-			Primary:   d.Class,
-			Secondary: d.Prev.Name,
-		})
-		return
-	}
-	if p, n := (d.Prev.Name), d.Next.Name; p != n {
-		actions = append(actions, Action{
-			Type:      Change,
-			Element:   Property,
-			Primary:   d.Class,
-			Secondary: d.Prev.Name,
-			Fields:    rbxdump.Fields{"Name": n},
-		})
-	}
-	if !compareParams(d.Prev.Parameters, d.Next.Parameters) {
-		actions = append(actions, Action{
-			Type:      Change,
-			Element:   Property,
-			Primary:   d.Class,
-			Secondary: d.Prev.Name,
-			Fields:    rbxdump.Fields{"Parameters": rbxdump.CopyParams(d.Next.Parameters)},
-		})
-	}
-	if p, n := (d.Prev.ReturnType), d.Next.ReturnType; p != n {
-		actions = append(actions, Action{
-			Type:      Change,
-			Element:   Property,
-			Primary:   d.Class,
-			Secondary: d.Prev.Name,
-			Fields:    rbxdump.Fields{"ReturnType": n},
-		})
-	}
-	if p, n := (d.Prev.Security), d.Next.Security; p != n {
-		actions = append(actions, Action{
-			Type:      Change,
-			Element:   Property,
-			Primary:   d.Class,
-			Secondary: d.Prev.Name,
-			Fields:    rbxdump.Fields{"Security": n},
-		})
-	}
-	if !compareTags(d.Prev.Tags, d.Next.Tags) {
-		actions = append(actions, Action{
-			Type:      Change,
-			Element:   Property,
-			Primary:   d.Class,
-			Secondary: d.Prev.Name,
-			Fields:    rbxdump.Fields{"Tags": d.Next.GetTags()},
-		})
-	}
-	return
+	return actions
 }
 
 // DiffEnum is a Differ that finds differences between two rbxdump.Enum
@@ -556,68 +270,59 @@ type DiffEnum struct {
 
 // Diff implements the Differ interface.
 func (d DiffEnum) Diff() (actions []Action) {
+	// Handle both-nil case.
 	if d.Prev == nil && d.Next == nil {
-		return
-	} else if d.Prev == nil {
+		return actions
+	}
+
+	// Handle either-nil case.
+	if d.Prev == nil {
 		actions = append(actions, Action{
 			Type:    Add,
 			Element: Enum,
 			Primary: d.Next.Name,
+			Fields:  d.Next.Fields(),
 		})
-		return
+		if !d.ExcludeEnumItems {
+			for _, item := range d.Next.GetEnumItems() {
+				actions = append(actions, DiffEnumItem{Enum: d.Next.Name, Next: item}.Diff()...)
+			}
+		}
+		return actions
 	} else if d.Next == nil {
 		actions = append(actions, Action{
 			Type:    Remove,
 			Element: Enum,
 			Primary: d.Prev.Name,
 		})
-		return
+		return actions
 	}
-	if p, n := (d.Prev.Name), d.Next.Name; p != n {
+
+	// Compare fields.
+	if fields := compareFields(d.Prev.Fields(), d.Next.Fields()); len(fields) > 0 {
 		actions = append(actions, Action{
 			Type:    Change,
 			Element: Enum,
 			Primary: d.Prev.Name,
-			Fields:  rbxdump.Fields{"Name": n},
+			Fields:  fields,
 		})
 	}
-	if !compareTags(d.Prev.Tags, d.Next.Tags) {
-		actions = append(actions, Action{
-			Type:      Change,
-			Element:   Enum,
-			Secondary: d.Prev.Name,
-			Fields:    rbxdump.Fields{"Tags": d.Next.GetTags()},
-		})
+
+	// Compare items.
+	if d.ExcludeEnumItems {
+		return actions
 	}
-	if !d.ExcludeEnumItems {
-		items := d.Prev.GetEnumItems()
-		names := make(map[string]struct{}, len(items))
-		for _, p := range items {
-			names[p.Name] = struct{}{}
-			n := d.Next.Items[p.Name]
-			if n == nil {
-				actions = append(actions, Action{
-					Type:      Remove,
-					Element:   EnumItem,
-					Primary:   d.Prev.Name,
-					Secondary: p.Name,
-				})
-				continue
-			}
-			actions = append(actions, (&DiffEnumItem{d.Prev.Name, p, n}).Diff()...)
-		}
-		for _, n := range d.Next.GetEnumItems() {
-			if _, ok := names[n.Name]; !ok {
-				actions = append(actions, Action{
-					Type:      Add,
-					Element:   EnumItem,
-					Primary:   d.Prev.Name,
-					Secondary: n.Name,
-				})
-			}
+	for _, p := range d.Prev.GetEnumItems() {
+		n := d.Next.Items[p.Name]
+		actions = append(actions, DiffEnumItem{Enum: d.Prev.Name, Prev: p, Next: n}.Diff()...)
+	}
+	for _, n := range d.Next.GetEnumItems() {
+		if _, ok := d.Prev.Items[n.Name]; !ok {
+			actions = append(actions, DiffEnumItem{Enum: d.Prev.Name, Next: n}.Diff()...)
 		}
 	}
-	return
+
+	return actions
 }
 
 // DiffEnumItem is a Differ that finds differences between two
@@ -630,16 +335,21 @@ type DiffEnumItem struct {
 
 // Diff implements the Differ interface.
 func (d DiffEnumItem) Diff() (actions []Action) {
+	// Handle both-nil case.
 	if d.Prev == nil && d.Next == nil {
 		return
-	} else if d.Prev == nil {
+	}
+
+	// Handle either-nil case.
+	if d.Prev == nil {
 		actions = append(actions, Action{
 			Type:      Add,
 			Element:   EnumItem,
 			Primary:   d.Enum,
 			Secondary: d.Next.Name,
+			Fields:    d.Next.Fields(),
 		})
-		return
+		return actions
 	} else if d.Next == nil {
 		actions = append(actions, Action{
 			Type:      Remove,
@@ -647,33 +357,18 @@ func (d DiffEnumItem) Diff() (actions []Action) {
 			Primary:   d.Enum,
 			Secondary: d.Prev.Name,
 		})
-		return
+		return actions
 	}
-	if p, n := (d.Prev.Name), d.Next.Name; p != n {
+
+	// Compare fields.
+	if fields := compareFields(d.Prev.Fields(), d.Next.Fields()); len(fields) > 0 {
 		actions = append(actions, Action{
 			Type:      Change,
 			Element:   EnumItem,
 			Primary:   d.Enum,
 			Secondary: d.Prev.Name,
-			Fields:    rbxdump.Fields{"Name": n},
+			Fields:    fields,
 		})
 	}
-	if p, n := (d.Prev.Value), d.Next.Value; p != n {
-		actions = append(actions, Action{
-			Type:      Change,
-			Element:   EnumItem,
-			Primary:   d.Enum,
-			Secondary: d.Prev.Name,
-			Fields:    rbxdump.Fields{"Value": n},
-		})
-	}
-	if !compareTags(d.Prev.Tags, d.Next.Tags) {
-		actions = append(actions, Action{
-			Type:      Change,
-			Primary:   d.Enum,
-			Secondary: d.Prev.Name,
-			Fields:    rbxdump.Fields{"Tags": d.Next.GetTags()},
-		})
-	}
-	return
+	return actions
 }
