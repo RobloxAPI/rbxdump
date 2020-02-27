@@ -599,6 +599,7 @@ func (item *EnumItem) Fields() Fields {
 	return Fields{
 		"Name":  item.Name,
 		"Value": item.Value,
+		"Index": item.Index,
 		"Tags":  item.Tags,
 	}
 }
@@ -613,6 +614,11 @@ func (item *EnumItem) SetFields(fields Fields) {
 	if v, ok := fields["Value"]; ok {
 		if v, ok := v.(int); ok {
 			item.Value = v
+		}
+	}
+	if v, ok := fields["Index"]; ok {
+		if v, ok := v.(int); ok {
+			item.Index = v
 		}
 	}
 	if v, ok := fields["Tags"]; ok {
