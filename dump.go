@@ -151,13 +151,12 @@ func (class *Class) Copy() *Class {
 	return &cclass
 }
 
-// Fields implements the Fielder interface.
+// Fields implements the Fielder interface. Does not return the Members field.
 func (class *Class) Fields() Fields {
 	return Fields{
 		"Name":           class.Name,
 		"Superclass":     class.Superclass,
 		"MemoryCategory": class.MemoryCategory,
-		"Members":        class.Members,
 		"Tags":           class.Tags,
 	}
 }
@@ -550,12 +549,11 @@ func (enum *Enum) Copy() *Enum {
 	return &cenum
 }
 
-// Fields implements the Fielder interface.
+// Fields implements the Fielder interface. Does not return the Items field.
 func (enum *Enum) Fields() Fields {
 	return Fields{
-		"Name":      enum.Name,
-		"EnumItems": enum.Items,
-		"Tags":      enum.Tags,
+		"Name": enum.Name,
+		"Tags": enum.Tags,
 	}
 }
 
