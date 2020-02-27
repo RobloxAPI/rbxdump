@@ -47,7 +47,7 @@ type Diff struct {
 }
 
 // Diff implements the Differ interface.
-func (d *Diff) Diff() (actions []Action) {
+func (d Diff) Diff() (actions []Action) {
 	{
 		var names map[string]struct{}
 		if d.Prev != nil {
@@ -144,7 +144,7 @@ type DiffClass struct {
 }
 
 // Diff implements the Differ interface.
-func (d *DiffClass) Diff() (actions []Action) {
+func (d DiffClass) Diff() (actions []Action) {
 	if d.Prev == nil && d.Next == nil {
 		return
 	} else if d.Prev == nil {
@@ -259,7 +259,7 @@ type DiffProperty struct {
 }
 
 // Diff implements the Differ interface.
-func (d *DiffProperty) Diff() (actions []Action) {
+func (d DiffProperty) Diff() (actions []Action) {
 	if d.Prev == nil && d.Next == nil {
 		return
 	} else if d.Prev == nil {
@@ -338,7 +338,7 @@ type DiffFunction struct {
 }
 
 // Diff implements the Differ interface.
-func (d *DiffFunction) Diff() (actions []Action) {
+func (d DiffFunction) Diff() (actions []Action) {
 	if d.Prev == nil && d.Next == nil {
 		return
 	} else if d.Prev == nil {
@@ -414,7 +414,7 @@ type DiffEvent struct {
 }
 
 // Diff implements the Differ interface.
-func (d *DiffEvent) Diff() (actions []Action) {
+func (d DiffEvent) Diff() (actions []Action) {
 	if d.Prev == nil && d.Next == nil {
 		return
 	} else if d.Prev == nil {
@@ -480,7 +480,7 @@ type DiffCallback struct {
 }
 
 // Diff implements the Differ interface.
-func (d *DiffCallback) Diff() (actions []Action) {
+func (d DiffCallback) Diff() (actions []Action) {
 	if d.Prev == nil && d.Next == nil {
 		return
 	} else if d.Prev == nil {
@@ -555,7 +555,7 @@ type DiffEnum struct {
 }
 
 // Diff implements the Differ interface.
-func (d *DiffEnum) Diff() (actions []Action) {
+func (d DiffEnum) Diff() (actions []Action) {
 	if d.Prev == nil && d.Next == nil {
 		return
 	} else if d.Prev == nil {
@@ -629,7 +629,7 @@ type DiffEnumItem struct {
 }
 
 // Diff implements the Differ interface.
-func (d *DiffEnumItem) Diff() (actions []Action) {
+func (d DiffEnumItem) Diff() (actions []Action) {
 	if d.Prev == nil && d.Next == nil {
 		return
 	} else if d.Prev == nil {
