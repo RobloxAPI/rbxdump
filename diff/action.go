@@ -3,6 +3,8 @@
 package diff
 
 import (
+	"fmt"
+
 	"github.com/robloxapi/rbxdump"
 )
 
@@ -130,4 +132,16 @@ type Action struct {
 	// Fields describes fields of the element. If Type is Add, this describes
 	// the initial values. If Type is Change, this describes the new values.
 	Fields rbxdump.Fields
+}
+
+func (a Action) String() string {
+	s := a.Type.String() + " " + a.Element.String() + " " + a.Primary
+	switch a.Element {
+	case Property, Function, Event, Callback, EnumItem:
+		s += "." + a.Secondary
+	}
+	if len(a.Fields) > 0 {
+		s += ": " + fmt.Sprintf("%v", a.Fields)
+	}
+	return s
 }
