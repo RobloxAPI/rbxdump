@@ -1,6 +1,6 @@
-// The rbxdhist package is used to parse logs involving the deployment of
-// Roblox builds.
-package rbxdhist
+// The histlog package is used to parse logs involving the deployment of Roblox
+// builds.
+package histlog
 
 import (
 	"regexp"

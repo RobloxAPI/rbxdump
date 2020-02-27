@@ -1,4 +1,4 @@
-package rbxdhist
+package histlog
 
 import (
 	"bytes"

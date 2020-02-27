@@ -1,6 +1,6 @@
-[![GoDoc](https://godoc.org/github.com/robloxapi/rbxdhist?status.png)](https://godoc.org/github.com/robloxapi/rbxdhist)
+[![GoDoc](https://godoc.org/github.com/robloxapi/rbxdump/histlog?status.png)](https://godoc.org/github.com/robloxapi/rbxdump/histlog)
 
-# rbxdhist
+# histlog
 
-The rbxdhist package is used to parse logs involving the deployment of Roblox
+The histlog package is used to parse logs involving the deployment of Roblox
 builds.
