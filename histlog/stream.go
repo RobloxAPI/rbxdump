@@ -62,6 +62,7 @@ func (s *Stream) UnmarshalJSON(b []byte) error {
 }
 
 type Token interface {
+	token()
 	json.Marshaler
 	json.Unmarshaler
 }
@@ -73,6 +74,8 @@ type Job struct {
 	Time    time.Time
 	Version Version
 }
+
+func (Job) token() {}
 
 func (j *Job) MarshalJSON() (b []byte, err error) {
 	var buf bytes.Buffer
@@ -208,6 +211,8 @@ func (v Version) String() string {
 
 type Status string
 
+func (Status) token() {}
+
 func (s Status) MarshalJSON() (b []byte, err error) {
 	var buf bytes.Buffer
 	var c []byte
@@ -235,6 +240,8 @@ func (s *Status) UnmarshalJSON(b []byte) error {
 }
 
 type Raw string
+
+func (Raw) token() {}
 
 func (r Raw) MarshalJSON() (b []byte, err error) {
 	var buf bytes.Buffer
