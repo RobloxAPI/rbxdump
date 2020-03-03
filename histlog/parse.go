@@ -38,7 +38,7 @@ const parserGrammar = `` +
 	// Newline prefix (2012/9/6):
 	//     \nNew Build version-0123456789abcdef at 1/2/2006 3:04:05 PM, file version: 0, 123, 1, 12345...
 	//     \nRevert Build version-0123456789abcdef at 1/2/2006 3:04:05 PM...
-	`(?:(?:^|\r?\n)?(New|Revert) (\w+) (.*?) at (\d{1,2}/\d{1,2}/\d{4} \d{1,2}:\d{2}:\d{2} (?:A|P)M)(?:, file vers?ion: (\d+, \d+, \d+, \d+))?... ?)` +
+	`(?:(?:^|\r?\n)?(New|Revert) (\w+) (.*?) at (\d{1,2}/\d{1,2}/\d{3,4} \d{1,2}:\d{2}:\d{2} (?:A|P)M)(?:, file vers?ion: (\d+, \d+, \d+, \d+))?... ?)` +
 	// Status (unchanged):
 	//     Done!\n
 	//     Error!\n
@@ -65,7 +65,7 @@ func init() {
 func Lex(b []byte) (s Stream) {
 	for i := 0; i < len(b); {
 		r := streamParser.FindSubmatchIndex(b[i:])
-		if r[1] < 0 {
+		if len(r) == 0 || r[1] < 0 {
 			// EOF
 			if i < len(s) {
 				raw := Raw(b[i:])
