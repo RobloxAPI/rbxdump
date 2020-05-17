@@ -83,7 +83,7 @@ func Lex(b []byte) (s Stream) {
 			job := Job{
 				Action: string(b[i+r[2] : i+r[3]]),
 				Build:  string(b[i+r[4] : i+r[5]]),
-				Hash:   string(b[i+r[6] : i+r[7]]),
+				GUID:   string(b[i+r[6] : i+r[7]]),
 			}
 			const dateLayout = "1/2/2006 3:04:05 PM"
 			var err error

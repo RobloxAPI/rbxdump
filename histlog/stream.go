@@ -31,7 +31,7 @@ func (s *Stream) UnmarshalJSON(b []byte) error {
 		Type    string
 		Action  string
 		Build   string
-		Hash    string
+		GUID    string
 		Time    time.Time
 		Version Version
 		Value   string
@@ -46,7 +46,7 @@ func (s *Stream) UnmarshalJSON(b []byte) error {
 			*s = append(*s, &Job{
 				Action:  token.Action,
 				Build:   token.Build,
-				Hash:    token.Hash,
+				GUID:    token.GUID,
 				Time:    token.Time,
 				Version: token.Version,
 			})
@@ -70,7 +70,7 @@ type Token interface {
 type Job struct {
 	Action  string
 	Build   string
-	Hash    string
+	GUID    string
 	Time    time.Time
 	Version Version
 }
@@ -86,8 +86,8 @@ func (j *Job) MarshalJSON() (b []byte, err error) {
 	buf.WriteString(`,"Build":`)
 	c, _ = json.Marshal(j.Build)
 	buf.Write(c)
-	buf.WriteString(`,"Hash":`)
-	c, _ = json.Marshal(j.Hash)
+	buf.WriteString(`,"GUID":`)
+	c, _ = json.Marshal(j.GUID)
 	buf.Write(c)
 	buf.WriteString(`,"Time":`)
 	c, _ = j.Time.MarshalJSON()
@@ -106,7 +106,7 @@ func (j *Job) UnmarshalJSON(b []byte) error {
 		Type    string
 		Action  string
 		Build   string
-		Hash    string
+		GUID    string
 		Time    time.Time
 		Version Version
 	}
@@ -119,7 +119,7 @@ func (j *Job) UnmarshalJSON(b []byte) error {
 	}
 	j.Action = job.Action
 	j.Build = job.Build
-	j.Hash = job.Hash
+	j.GUID = job.GUID
 	j.Time = job.Time
 	j.Version = job.Version
 	return nil
