@@ -1,10 +1,39 @@
 // The rbxdump package is used to represent Roblox Lua API dumps.
 package rbxdump
 
-import "sort"
+import (
+	"encoding/json"
+	"sort"
+)
 
 // Fields describes a set of names mapped to values.
 type Fields map[string]interface{}
+
+func (f *Fields) UnmarshalJSON(b []byte) (err error) {
+	var t struct {
+		ValueType  *Type
+		ReturnType *Type
+		Parameters []Parameter
+		Tags       Tags
+	}
+	json.Unmarshal(b, &t)
+	v := map[string]interface{}{}
+	json.Unmarshal(b, &v)
+	if t.ValueType != nil {
+		v["ValueType"] = *t.ValueType
+	}
+	if t.ReturnType != nil {
+		v["ReturnType"] = *t.ReturnType
+	}
+	if t.Parameters != nil {
+		v["Parameters"] = t.Parameters
+	}
+	if t.Tags != nil {
+		v["Tags"] = t.Tags
+	}
+	*f = v
+	return
+}
 
 // Fielder is implemented by any value that can get and set its fields from a
 // Fields map.
