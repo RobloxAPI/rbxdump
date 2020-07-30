@@ -20,6 +20,9 @@ func (root Patch) Patch(actions []Action) {
 				if _, ok := root.Classes[action.Primary]; !ok {
 					class := rbxdump.Class{}
 					class.SetFields(action.Fields)
+					if root.Classes == nil {
+						root.Classes = map[string]*rbxdump.Class{}
+					}
 					root.Classes[action.Primary] = &class
 				}
 			case Remove:
@@ -39,6 +42,9 @@ func (root Patch) Patch(actions []Action) {
 				if _, ok := root.Enums[action.Primary]; !ok {
 					enum := rbxdump.Enum{}
 					enum.SetFields(action.Fields)
+					if root.Enums == nil {
+						root.Enums = map[string]*rbxdump.Enum{}
+					}
 					root.Enums[action.Primary] = &enum
 				}
 			case Remove:
@@ -76,6 +82,9 @@ func (class PatchClass) Patch(actions []Action) {
 				if _, ok := class.Members[action.Secondary]; !ok {
 					member := rbxdump.Property{}
 					member.SetFields(action.Fields)
+					if class.Members == nil {
+						class.Members = map[string]rbxdump.Member{}
+					}
 					class.Members[action.Secondary] = &member
 				}
 			case Remove:
@@ -97,6 +106,9 @@ func (class PatchClass) Patch(actions []Action) {
 				if _, ok := class.Members[action.Secondary]; !ok {
 					member := rbxdump.Function{}
 					member.SetFields(action.Fields)
+					if class.Members == nil {
+						class.Members = map[string]rbxdump.Member{}
+					}
 					class.Members[action.Secondary] = &member
 				}
 			case Remove:
@@ -118,6 +130,9 @@ func (class PatchClass) Patch(actions []Action) {
 				if _, ok := class.Members[action.Secondary]; !ok {
 					member := rbxdump.Event{}
 					member.SetFields(action.Fields)
+					if class.Members == nil {
+						class.Members = map[string]rbxdump.Member{}
+					}
 					class.Members[action.Secondary] = &member
 				}
 			case Remove:
@@ -139,6 +154,9 @@ func (class PatchClass) Patch(actions []Action) {
 				if _, ok := class.Members[action.Secondary]; !ok {
 					member := rbxdump.Callback{}
 					member.SetFields(action.Fields)
+					if class.Members == nil {
+						class.Members = map[string]rbxdump.Member{}
+					}
 					class.Members[action.Secondary] = &member
 				}
 			case Remove:
@@ -250,6 +268,9 @@ func (enum PatchEnum) Patch(actions []Action) {
 				if _, ok := enum.Items[action.Secondary]; !ok {
 					item := rbxdump.EnumItem{}
 					item.SetFields(action.Fields)
+					if enum.Items == nil {
+						enum.Items = map[string]*rbxdump.EnumItem{}
+					}
 					enum.Items[action.Secondary] = &item
 				}
 			case Remove:
