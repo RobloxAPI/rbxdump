@@ -3,6 +3,7 @@
 package diff
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/robloxapi/rbxdump"
@@ -116,6 +117,41 @@ func (e Element) IsValid() bool {
 // IsMember returns whether the element is a class member.
 func (e Element) IsMember() bool {
 	return Property <= e && e <= Callback
+}
+
+func (e Element) MarshalJSON() (b []byte, err error) {
+	s := e.String()
+	b = make([]byte, 0, len(s)+2)
+	b = append(b, '"')
+	b = append(b, s...)
+	b = append(b, '"')
+	return b, nil
+}
+
+func (e *Element) UnmarshalJSON(b []byte) error {
+	var v string
+	if err := json.Unmarshal(b, &v); err != nil {
+		return err
+	}
+	switch v {
+	case "Class":
+		*e = Class
+	case "Property":
+		*e = Property
+	case "Function":
+		*e = Function
+	case "Event":
+		*e = Event
+	case "Callback":
+		*e = Callback
+	case "Enum":
+		*e = Enum
+	case "EnumItem":
+		*e = EnumItem
+	default:
+		*e = Invalid
+	}
+	return nil
 }
 
 // Action describes a single unit of difference between two dump structures.
