@@ -231,6 +231,7 @@ type Property struct {
 	WriteSecurity string
 	CanLoad       bool
 	CanSave       bool
+	ThreadSafety  string
 	Tags
 }
 
@@ -269,6 +270,7 @@ func (member *Property) Fields() Fields {
 		"WriteSecurity": member.WriteSecurity,
 		"CanLoad":       member.CanLoad,
 		"CanSave":       member.CanSave,
+		"ThreadSafety":  member.ThreadSafety,
 		"Tags":          member.Tags,
 	}
 }
@@ -310,6 +312,11 @@ func (member *Property) SetFields(fields Fields) {
 			member.CanSave = v
 		}
 	}
+	if v, ok := fields["ThreadSafety"]; ok {
+		if v, ok := v.(string); ok {
+			member.ThreadSafety = v
+		}
+	}
 	if v, ok := fields["Tags"]; ok {
 		if v, ok := v.(Tags); ok {
 			member.Tags = v.GetTags()
@@ -319,10 +326,11 @@ func (member *Property) SetFields(fields Fields) {
 
 // Function is a Member that represents a class function.
 type Function struct {
-	Name       string
-	Parameters []Parameter
-	ReturnType Type
-	Security   string
+	Name         string
+	Parameters   []Parameter
+	ReturnType   Type
+	Security     string
+	ThreadSafety string
 	Tags
 }
 
@@ -355,11 +363,12 @@ func (member *Function) Copy() *Function {
 // Fields implements the Fielder interface.
 func (member *Function) Fields() Fields {
 	return Fields{
-		"Name":       member.Name,
-		"Parameters": member.Parameters,
-		"ReturnType": member.ReturnType,
-		"Security":   member.Security,
-		"Tags":       member.Tags,
+		"Name":         member.Name,
+		"Parameters":   member.Parameters,
+		"ReturnType":   member.ReturnType,
+		"Security":     member.Security,
+		"ThreadSafety": member.ThreadSafety,
+		"Tags":         member.Tags,
 	}
 }
 
@@ -385,6 +394,11 @@ func (member *Function) SetFields(fields Fields) {
 			member.Security = v
 		}
 	}
+	if v, ok := fields["ThreadSafety"]; ok {
+		if v, ok := v.(string); ok {
+			member.ThreadSafety = v
+		}
+	}
 	if v, ok := fields["Tags"]; ok {
 		if v, ok := v.(Tags); ok {
 			member.Tags = v.GetTags()
@@ -394,9 +408,10 @@ func (member *Function) SetFields(fields Fields) {
 
 // Event is a Member that represents a class event.
 type Event struct {
-	Name       string
-	Parameters []Parameter
-	Security   string
+	Name         string
+	Parameters   []Parameter
+	Security     string
+	ThreadSafety string
 	Tags
 }
 
@@ -429,10 +444,11 @@ func (member *Event) Copy() *Event {
 // Fields implements the Fielder interface.
 func (member *Event) Fields() Fields {
 	return Fields{
-		"Name":       member.Name,
-		"Parameters": member.Parameters,
-		"Security":   member.Security,
-		"Tags":       member.Tags,
+		"Name":         member.Name,
+		"Parameters":   member.Parameters,
+		"Security":     member.Security,
+		"ThreadSafety": member.ThreadSafety,
+		"Tags":         member.Tags,
 	}
 }
 
@@ -453,6 +469,11 @@ func (member *Event) SetFields(fields Fields) {
 			member.Security = v
 		}
 	}
+	if v, ok := fields["ThreadSafety"]; ok {
+		if v, ok := v.(string); ok {
+			member.ThreadSafety = v
+		}
+	}
 	if v, ok := fields["Tags"]; ok {
 		if v, ok := v.(Tags); ok {
 			member.Tags = v.GetTags()
@@ -462,10 +483,11 @@ func (member *Event) SetFields(fields Fields) {
 
 // Callback is a Member that represents a class callback.
 type Callback struct {
-	Name       string
-	Parameters []Parameter
-	ReturnType Type
-	Security   string
+	Name         string
+	Parameters   []Parameter
+	ReturnType   Type
+	Security     string
+	ThreadSafety string
 	Tags
 }
 
@@ -498,11 +520,12 @@ func (member *Callback) Copy() *Callback {
 // Fields implements the Fielder interface.
 func (member *Callback) Fields() Fields {
 	return Fields{
-		"Name":       member.Name,
-		"Parameters": member.Parameters,
-		"ReturnType": member.ReturnType,
-		"Security":   member.Security,
-		"Tags":       member.Tags,
+		"Name":         member.Name,
+		"Parameters":   member.Parameters,
+		"ReturnType":   member.ReturnType,
+		"Security":     member.Security,
+		"ThreadSafety": member.ThreadSafety,
+		"Tags":         member.Tags,
 	}
 }
 
@@ -526,6 +549,11 @@ func (member *Callback) SetFields(fields Fields) {
 	if v, ok := fields["Security"]; ok {
 		if v, ok := v.(string); ok {
 			member.Security = v
+		}
+	}
+	if v, ok := fields["ThreadSafety"]; ok {
+		if v, ok := v.(string); ok {
+			member.ThreadSafety = v
 		}
 	}
 	if v, ok := fields["Tags"]; ok {

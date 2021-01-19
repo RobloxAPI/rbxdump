@@ -48,34 +48,38 @@ type jProperty struct {
 	Name          string
 	Security      struct{ Read, Write string }
 	Serialization struct{ CanLoad, CanSave bool }
+	ThreadSafety  string   `json:",omitempty"`
 	Tags          []string `json:",omitempty"`
 	ValueType     rbxdump.Type
 }
 
 type jFunction struct {
-	MemberType string
-	Name       string
-	Parameters []jParameter
-	ReturnType rbxdump.Type
-	Security   string
-	Tags       []string `json:",omitempty"`
+	MemberType   string
+	Name         string
+	Parameters   []jParameter
+	ReturnType   rbxdump.Type
+	Security     string
+	ThreadSafety string   `json:",omitempty"`
+	Tags         []string `json:",omitempty"`
 }
 
 type jEvent struct {
-	MemberType string
-	Name       string
-	Parameters []jBasicParameter
-	Security   string
-	Tags       []string `json:",omitempty"`
+	MemberType   string
+	Name         string
+	Parameters   []jBasicParameter
+	Security     string
+	ThreadSafety string   `json:",omitempty"`
+	Tags         []string `json:",omitempty"`
 }
 
 type jCallback struct {
-	MemberType string
-	Name       string
-	Parameters []jBasicParameter
-	ReturnType rbxdump.Type
-	Security   string
-	Tags       []string `json:",omitempty"`
+	MemberType   string
+	Name         string
+	Parameters   []jBasicParameter
+	ReturnType   rbxdump.Type
+	Security     string
+	ThreadSafety string   `json:",omitempty"`
+	Tags         []string `json:",omitempty"`
 }
 
 type jEnum struct {

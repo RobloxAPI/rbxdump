@@ -80,6 +80,7 @@ func (jmember *jMember) UnmarshalJSON(b []byte) (err error) {
 			WriteSecurity: member.Security.Write,
 			CanLoad:       member.Serialization.CanLoad,
 			CanSave:       member.Serialization.CanSave,
+			ThreadSafety:  member.ThreadSafety,
 			Tags:          member.Tags,
 		}
 
@@ -93,11 +94,12 @@ func (jmember *jMember) UnmarshalJSON(b []byte) (err error) {
 			params[i] = rbxdump.Parameter(param)
 		}
 		jmember.Member = &rbxdump.Function{
-			Name:       member.Name,
-			Parameters: params,
-			ReturnType: member.ReturnType,
-			Security:   member.Security,
-			Tags:       member.Tags,
+			Name:         member.Name,
+			Parameters:   params,
+			ReturnType:   member.ReturnType,
+			Security:     member.Security,
+			ThreadSafety: member.ThreadSafety,
+			Tags:         member.Tags,
 		}
 
 	case "Event":
@@ -110,10 +112,11 @@ func (jmember *jMember) UnmarshalJSON(b []byte) (err error) {
 			params[i] = rbxdump.Parameter{Type: param.Type, Name: param.Name}
 		}
 		jmember.Member = &rbxdump.Event{
-			Name:       member.Name,
-			Parameters: params,
-			Security:   member.Security,
-			Tags:       member.Tags,
+			Name:         member.Name,
+			Parameters:   params,
+			Security:     member.Security,
+			ThreadSafety: member.ThreadSafety,
+			Tags:         member.Tags,
 		}
 
 	case "Callback":
@@ -126,11 +129,12 @@ func (jmember *jMember) UnmarshalJSON(b []byte) (err error) {
 			params[i] = rbxdump.Parameter{Type: param.Type, Name: param.Name}
 		}
 		jmember.Member = &rbxdump.Callback{
-			Name:       member.Name,
-			Parameters: params,
-			ReturnType: member.ReturnType,
-			Security:   member.Security,
-			Tags:       member.Tags,
+			Name:         member.Name,
+			Parameters:   params,
+			ReturnType:   member.ReturnType,
+			Security:     member.Security,
+			ThreadSafety: member.ThreadSafety,
+			Tags:         member.Tags,
 		}
 
 	default:

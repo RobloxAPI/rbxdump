@@ -186,11 +186,12 @@ func (member jMember) MarshalJSON() (b []byte, err error) {
 	switch member := member.Member.(type) {
 	case *rbxdump.Property:
 		m := jProperty{
-			MemberType: "Property",
-			Name:       member.Name,
-			ValueType:  member.ValueType,
-			Category:   member.Category,
-			Tags:       member.Tags,
+			MemberType:   "Property",
+			Name:         member.Name,
+			ValueType:    member.ValueType,
+			Category:     member.Category,
+			ThreadSafety: member.ThreadSafety,
+			Tags:         member.Tags,
 		}
 		m.Security.Read = member.ReadSecurity
 		m.Security.Write = member.WriteSecurity
@@ -203,12 +204,13 @@ func (member jMember) MarshalJSON() (b []byte, err error) {
 			params[i] = jParameter(param)
 		}
 		m := jFunction{
-			MemberType: "Function",
-			Name:       member.Name,
-			Parameters: params,
-			ReturnType: member.ReturnType,
-			Security:   member.Security,
-			Tags:       member.Tags,
+			MemberType:   "Function",
+			Name:         member.Name,
+			Parameters:   params,
+			ReturnType:   member.ReturnType,
+			Security:     member.Security,
+			ThreadSafety: member.ThreadSafety,
+			Tags:         member.Tags,
 		}
 		jmember = m
 	case *rbxdump.Event:
@@ -217,11 +219,12 @@ func (member jMember) MarshalJSON() (b []byte, err error) {
 			params[i] = jBasicParameter{Type: param.Type, Name: param.Name}
 		}
 		m := jEvent{
-			MemberType: "Event",
-			Name:       member.Name,
-			Parameters: params,
-			Security:   member.Security,
-			Tags:       member.Tags,
+			MemberType:   "Event",
+			Name:         member.Name,
+			Parameters:   params,
+			Security:     member.Security,
+			ThreadSafety: member.ThreadSafety,
+			Tags:         member.Tags,
 		}
 		jmember = m
 	case *rbxdump.Callback:
@@ -230,12 +233,13 @@ func (member jMember) MarshalJSON() (b []byte, err error) {
 			params[i] = jBasicParameter{Type: param.Type, Name: param.Name}
 		}
 		m := jCallback{
-			MemberType: "Callback",
-			Name:       member.Name,
-			Parameters: params,
-			ReturnType: member.ReturnType,
-			Security:   member.Security,
-			Tags:       member.Tags,
+			MemberType:   "Callback",
+			Name:         member.Name,
+			Parameters:   params,
+			ReturnType:   member.ReturnType,
+			Security:     member.Security,
+			ThreadSafety: member.ThreadSafety,
+			Tags:         member.Tags,
 		}
 		jmember = m
 	}
