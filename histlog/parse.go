@@ -38,7 +38,9 @@ const parserGrammar = `` +
 	// Newline prefix (2012/9/6):
 	//     \nNew Build version-0123456789abcdef at 1/2/2006 3:04:05 PM, file version: 0, 123, 1, 12345...
 	//     \nRevert Build version-0123456789abcdef at 1/2/2006 3:04:05 PM...
-	`(?:(?:^|\r?\n)?(New|Revert) (\w+) (.*?) at (\d{1,2}/\d{1,2}/\d{3,4} \d{1,2}:\d{2}:\d{2} (?:A|P)M)(?:, file vers?ion: (\d+, \d+, \d+, \d+))?... ?)` +
+	// Git hash (2021/5/24):
+	//     \nNew Build version-0123456789abcdef at 1/2/2006 3:04:05 PM, file version: 0, 123, 1, 12345, git hash: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ...
+	`(?:(?:^|\r?\n)?(New|Revert) (\w+) (.*?) at (\d{1,2}/\d{1,2}/\d{4} \d{1,2}:\d{2}:\d{2} (?:A|P)M)(?:, file vers?ion: (\d+, \d+, \d+, \d+))?(?:, git hash: [0-9a-fA-F]+ )?... ?)` +
 	// Status (unchanged):
 	//     Done!\n
 	//     Error!\n
