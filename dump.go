@@ -642,22 +642,25 @@ type EnumItem struct {
 	Value int
 	Index int // Index determines the item's order among its sibling items.
 	Tags
+	LegacyNames []string
 }
 
 // Copy returns a deep copy of the enum item.
 func (item *EnumItem) Copy() *EnumItem {
 	citem := *item
 	citem.Tags = Tags(item.GetTags())
+	citem.LegacyNames = slices.Clone(item.LegacyNames)
 	return &citem
 }
 
 // Fields implements the Fielder interface.
 func (item *EnumItem) Fields() Fields {
 	return Fields{
-		"Name":  item.Name,
-		"Value": item.Value,
-		"Index": item.Index,
-		"Tags":  item.Tags,
+		"Name":        item.Name,
+		"Value":       item.Value,
+		"Index":       item.Index,
+		"Tags":        item.Tags,
+		"LegacyNames": item.LegacyNames,
 	}
 }
 
@@ -681,6 +684,11 @@ func (item *EnumItem) SetFields(fields Fields) {
 	if v, ok := fields["Tags"]; ok {
 		if v, ok := v.(Tags); ok {
 			item.Tags = v.GetTags()
+		}
+	}
+	if v, ok := fields["LegacyNames"]; ok {
+		if v, ok := v.([]string); ok {
+			item.LegacyNames = v
 		}
 	}
 }

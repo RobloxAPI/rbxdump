@@ -1,6 +1,8 @@
 package diff
 
 import (
+	"slices"
+
 	"github.com/robloxapi/rbxdump"
 )
 
@@ -73,6 +75,10 @@ func compareFields(prev, next rbxdump.Fields) rbxdump.Fields {
 			}
 		case string:
 			if n.(string) != p {
+				fields[name] = n
+			}
+		case []string:
+			if !slices.Equal(p, n.([]string)) {
 				fields[name] = n
 			}
 		case int:

@@ -47,10 +47,11 @@ func (root *jRoot) UnmarshalJSON(b []byte) (err error) {
 			}
 			for i, jitem := range jenum.Items {
 				enum.Items[jitem.Name] = &rbxdump.EnumItem{
-					Name:  jitem.Name,
-					Value: jitem.Value,
-					Index: i,
-					Tags:  jitem.Tags,
+					Name:        jitem.Name,
+					Value:       jitem.Value,
+					Index:       i,
+					Tags:        jitem.Tags,
+					LegacyNames: jitem.LegacyNames,
 				}
 			}
 			root.Enums[enum.Name] = &enum

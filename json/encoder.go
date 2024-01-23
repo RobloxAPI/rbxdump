@@ -163,10 +163,11 @@ func (root jRoot) MarshalJSON() (b []byte, err error) {
 		items := make([]jEnumItem, 0, len(enum.Items))
 		for _, item := range enum.Items {
 			items = append(items, jEnumItem{
-				Name:  item.Name,
-				Value: item.Value,
-				Tags:  item.Tags,
-				index: item.Index,
+				Name:        item.Name,
+				Value:       item.Value,
+				Tags:        item.Tags,
+				LegacyNames: item.LegacyNames,
+				index:       item.Index,
 			})
 		}
 		sort.Sort(jEnumItems(items))

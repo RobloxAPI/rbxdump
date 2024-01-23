@@ -89,9 +89,10 @@ type jEnum struct {
 }
 
 type jEnumItem struct {
-	Name  string
-	Tags  []string `json:",omitempty"`
-	Value int
+	Name        string
+	Tags        []string `json:",omitempty"`
+	LegacyNames []string `json:",omitempty"`
+	Value       int
 
 	index int
 }
