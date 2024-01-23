@@ -377,7 +377,7 @@ func (d *decoder) decodeProperty() {
 
 func (d *decoder) decodeFunction(yields bool) {
 	var member rbxdump.Function
-	member.ReturnType = rbxdump.Type{Name: d.expectChars(isType, "return type")}
+	member.ReturnType = []rbxdump.Type{{Name: d.expectChars(isType, "return type")}}
 	d.expectWhitespace()
 	class := d.expectChars(isClassName, "member class")
 	d.expectClass(class)
@@ -412,7 +412,7 @@ func (d *decoder) decodeEvent() {
 
 func (d *decoder) decodeCallback() {
 	var member rbxdump.Callback
-	member.ReturnType = rbxdump.Type{Name: d.expectChars(isType, "return type")}
+	member.ReturnType = []rbxdump.Type{{Name: d.expectChars(isType, "return type")}}
 	d.expectWhitespace()
 	class := d.expectChars(isClassName, "member class")
 	d.expectClass(class)

@@ -3,6 +3,7 @@
 package json
 
 import (
+	"encoding/json"
 	"strconv"
 
 	"github.com/robloxapi/rbxdump"
@@ -53,11 +54,35 @@ type jProperty struct {
 	ValueType     rbxdump.Type
 }
 
+type jReturnType []rbxdump.Type
+
+func (t *jReturnType) UnmarshalJSON(b []byte) error {
+	var one rbxdump.Type
+	if json.Unmarshal(b, &one) == nil {
+		*t = []rbxdump.Type{one}
+		return nil
+	}
+
+	var array []rbxdump.Type
+	if err := json.Unmarshal(b, &array); err != nil {
+		return err
+	}
+	*t = array
+	return nil
+}
+
+func (t jReturnType) MarshalJSON() ([]byte, error) {
+	if len(t) == 1 {
+		return json.Marshal((t)[0])
+	}
+	return json.Marshal([]rbxdump.Type(t))
+}
+
 type jFunction struct {
 	MemberType   string
 	Name         string
 	Parameters   []jParameter
-	ReturnType   rbxdump.Type
+	ReturnType   jReturnType
 	Security     string
 	ThreadSafety string   `json:",omitempty"`
 	Tags         []string `json:",omitempty"`
@@ -76,7 +101,7 @@ type jCallback struct {
 	MemberType   string
 	Name         string
 	Parameters   []jBasicParameter
-	ReturnType   rbxdump.Type
+	ReturnType   jReturnType
 	Security     string
 	ThreadSafety string   `json:",omitempty"`
 	Tags         []string `json:",omitempty"`

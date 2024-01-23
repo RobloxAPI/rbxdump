@@ -159,8 +159,16 @@ func (e *encoder) encodeMember(class *rbxdump.Class, member rbxdump.Member) {
 		} else {
 			e.writeString("Function ")
 		}
-		e.checkChars(isName, true, member.ReturnType.String(), "Function.ReturnType")
-		e.writeString(member.ReturnType.String())
+		switch len(member.ReturnType) {
+		case 0:
+			e.writeString("void")
+		case 1:
+			e.checkChars(isName, true, member.ReturnType[0].String(), "Function.ReturnType")
+			e.writeString(member.ReturnType[0].String())
+		default:
+			// Collapse multiple return values into Tuple.
+			e.writeString("Tuple")
+		}
 		e.writeString(" ")
 		e.writeString(class.Name)
 		e.writeString(":")
@@ -176,8 +184,16 @@ func (e *encoder) encodeMember(class *rbxdump.Class, member rbxdump.Member) {
 		e.encodeTags(member.Tags)
 	case *rbxdump.Callback:
 		e.writeString("Callback ")
-		e.checkChars(isName, true, member.ReturnType.String(), "Callback.ReturnType")
-		e.writeString(member.ReturnType.String())
+		switch len(member.ReturnType) {
+		case 0:
+			e.writeString("void")
+		case 1:
+			e.checkChars(isName, true, member.ReturnType[0].String(), "Callback.ReturnType")
+			e.writeString(member.ReturnType[0].String())
+		default:
+			// Collapse multiple return values into Tuple.
+			e.writeString("Tuple")
+		}
 		e.writeString(" ")
 		e.writeString(class.Name)
 		e.writeString(".")

@@ -3,6 +3,7 @@ package rbxdump
 
 import (
 	"encoding/json"
+	"slices"
 	"sort"
 )
 
@@ -10,27 +11,44 @@ import (
 type Fields map[string]interface{}
 
 func (f *Fields) UnmarshalJSON(b []byte) (err error) {
-	var t struct {
+	v := map[string]interface{}{}
+	json.Unmarshal(b, &v)
+
+	// Handle common fields.
+	var common struct {
 		ValueType  *Type
-		ReturnType *Type
 		Parameters []Parameter
 		Tags       Tags
 	}
-	json.Unmarshal(b, &t)
-	v := map[string]interface{}{}
-	json.Unmarshal(b, &v)
-	if t.ValueType != nil {
-		v["ValueType"] = *t.ValueType
+	json.Unmarshal(b, &common)
+	if common.ValueType != nil {
+		v["ValueType"] = *common.ValueType
 	}
-	if t.ReturnType != nil {
-		v["ReturnType"] = *t.ReturnType
+	if common.Parameters != nil {
+		v["Parameters"] = common.Parameters
 	}
-	if t.Parameters != nil {
-		v["Parameters"] = t.Parameters
+	if common.Tags != nil {
+		v["Tags"] = common.Tags
 	}
-	if t.Tags != nil {
-		v["Tags"] = t.Tags
+
+	// Handle single-value return type.
+	var retOne struct {
+		ReturnType *Type
 	}
+	json.Unmarshal(b, &retOne)
+	if retOne.ReturnType != nil {
+		v["ReturnType"] = []Type{*retOne.ReturnType}
+	} else {
+		// Handle multi-value return type.
+		var retArray struct {
+			ReturnType []Type
+		}
+		json.Unmarshal(b, &retArray)
+		if retArray.ReturnType != nil {
+			v["ReturnType"] = retArray.ReturnType
+		}
+	}
+
 	*f = v
 	return
 }
@@ -328,7 +346,7 @@ func (member *Property) SetFields(fields Fields) {
 type Function struct {
 	Name         string
 	Parameters   []Parameter
-	ReturnType   Type
+	ReturnType   []Type
 	Security     string
 	ThreadSafety string
 	Tags
@@ -385,7 +403,10 @@ func (member *Function) SetFields(fields Fields) {
 		}
 	}
 	if v, ok := fields["ReturnType"]; ok {
-		if v, ok := v.(Type); ok {
+		switch v := v.(type) {
+		case Type:
+			member.ReturnType = []Type{v}
+		case []Type:
 			member.ReturnType = v
 		}
 	}
@@ -485,7 +506,7 @@ func (member *Event) SetFields(fields Fields) {
 type Callback struct {
 	Name         string
 	Parameters   []Parameter
-	ReturnType   Type
+	ReturnType   []Type
 	Security     string
 	ThreadSafety string
 	Tags
@@ -542,7 +563,10 @@ func (member *Callback) SetFields(fields Fields) {
 		}
 	}
 	if v, ok := fields["ReturnType"]; ok {
-		if v, ok := v.(Type); ok {
+		switch v := v.(type) {
+		case Type:
+			member.ReturnType = []Type{v}
+		case []Type:
 			member.ReturnType = v
 		}
 	}

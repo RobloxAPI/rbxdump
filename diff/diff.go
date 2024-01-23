@@ -86,7 +86,31 @@ func compareFields(prev, next rbxdump.Fields) rbxdump.Fields {
 				fields[name] = n
 			}
 		case rbxdump.Type:
-			if n.(rbxdump.Type) != p {
+			pa := []rbxdump.Type{p}
+			na := []rbxdump.Type{}
+			switch n := n.(type) {
+			case rbxdump.Type:
+				na = []rbxdump.Type{n}
+			case []rbxdump.Type:
+				na = n
+			default:
+				panic("Type or []Type expected")
+			}
+			if !slices.Equal(pa, na) {
+				fields[name] = n
+			}
+		case []rbxdump.Type:
+			pa := p
+			na := []rbxdump.Type{}
+			switch n := n.(type) {
+			case rbxdump.Type:
+				na = []rbxdump.Type{n}
+			case []rbxdump.Type:
+				na = n
+			default:
+				panic("Type or []Type expected")
+			}
+			if !slices.Equal(pa, na) {
 				fields[name] = n
 			}
 		case rbxdump.Tags:
