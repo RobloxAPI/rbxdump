@@ -2,56 +2,12 @@
 package rbxdump
 
 import (
-	"encoding/json"
 	"slices"
 	"sort"
 )
 
 // Fields describes a set of names mapped to values.
 type Fields map[string]interface{}
-
-func (f *Fields) UnmarshalJSON(b []byte) (err error) {
-	v := map[string]interface{}{}
-	json.Unmarshal(b, &v)
-
-	// Handle common fields.
-	var common struct {
-		ValueType  *Type
-		Parameters []Parameter
-		Tags       Tags
-	}
-	json.Unmarshal(b, &common)
-	if common.ValueType != nil {
-		v["ValueType"] = *common.ValueType
-	}
-	if common.Parameters != nil {
-		v["Parameters"] = common.Parameters
-	}
-	if common.Tags != nil {
-		v["Tags"] = common.Tags
-	}
-
-	// Handle single-value return type.
-	var retOne struct {
-		ReturnType *Type
-	}
-	json.Unmarshal(b, &retOne)
-	if retOne.ReturnType != nil {
-		v["ReturnType"] = []Type{*retOne.ReturnType}
-	} else {
-		// Handle multi-value return type.
-		var retArray struct {
-			ReturnType []Type
-		}
-		json.Unmarshal(b, &retArray)
-		if retArray.ReturnType != nil {
-			v["ReturnType"] = retArray.ReturnType
-		}
-	}
-
-	*f = v
-	return
-}
 
 // Fielder is implemented by any value that can get and set its fields from a
 // Fields map.
@@ -62,6 +18,264 @@ type Fielder interface {
 	// SetFields sets the fields of the value. Values must not be retained; they
 	// should be copied if necessary. Invalid fields are ignored.
 	SetFields(Fields)
+}
+
+// Attempts to get a slice of T from v. get gets an individual element of type
+// T.
+//
+// When v is a value of type T, it is converted to a single-element slice of
+// that value.
+func convertSlice[T any](u *[]T, v any, get func(u *T, v any) bool) bool {
+	switch v := v.(type) {
+	case nil:
+		*u = nil
+		return true
+	case T:
+		*u = []T{v}
+		return true
+	case *T:
+		*u = []T{*v}
+		return true
+	case map[string]any:
+		ts := [1]T{}
+		if !get(&ts[0], v) {
+			return false
+		}
+		*u = ts[:]
+		return true
+	case []T:
+		*u = slices.Clone(v)
+		return true
+	case []any:
+		return convertAnySlice(u, v, get)
+	case []map[string]any:
+		return convertAnySlice(u, v, get)
+	}
+	return false
+}
+
+// Attempts to get a slice of type T from a slice of type U. get gets an
+// individual element of type T.
+func convertAnySlice[U any, T any](u *[]T, v []U, get func(u *T, v any) bool) bool {
+	ts := make([]T, len(v))
+	for i, v := range v {
+		var t T
+		if !get(&t, v) {
+			return false
+		}
+		ts[i] = t
+	}
+	*u = ts
+	return true
+}
+
+// Attempts to get a Parameter from v.
+func convertParameter(u *Parameter, v any) bool {
+	switch v := v.(type) {
+	case nil:
+		*u = Parameter{}
+		return true
+	case Parameter:
+		*u = v
+		return true
+	case *Parameter:
+		*u = *v
+		return true
+	case map[string]any:
+		var p Parameter
+		var ok bool
+		if !convertType(&p.Type, v["Type"]) {
+			return false
+		}
+		if p.Name, ok = v["Name"].(string); !ok {
+			return false
+		}
+		if p.Optional, ok = v["Optional"].(bool); !ok {
+			return false
+		}
+		if p.Optional {
+			if p.Default, ok = v["Default"].(string); !ok {
+				return false
+			}
+		}
+		*u = p
+		return true
+	}
+	return false
+}
+
+func convertType(u *Type, v any) bool {
+	switch v := v.(type) {
+	case nil:
+		*u = Type{}
+		return true
+	case Type:
+		*u = v
+		return true
+	case *Type:
+		*u = *v
+		return true
+	case map[string]any:
+		var t Type
+		var ok bool
+		if t.Category, ok = v["Category"].(string); !ok {
+			return false
+		}
+		if t.Name, ok = v["Name"].(string); !ok {
+			return false
+		}
+		*u = t
+		return true
+	}
+	return false
+}
+
+// Attempts to get a slice of strings from v.
+func convertStrings(u *[]string, v any) bool {
+	switch v := v.(type) {
+	case nil:
+		*u = nil
+	case []string:
+		*u = slices.Clone(v)
+		return true
+	case []any:
+		return convertAnySlice(u, v, func(u *string, v any) bool {
+			if v, ok := v.(string); ok {
+				*u = v
+				return true
+			}
+			return false
+		})
+	}
+	return false
+}
+
+// Attempts to get a value of type T from fields[key].
+func getPrimitive[T any](u *T, fields Fields, key string) bool {
+	v, ok := fields[key]
+	if !ok {
+		return false
+	}
+	switch v := v.(type) {
+	case nil:
+		var t T
+		*u = t
+		return true
+	case T:
+		*u = v
+		return true
+	}
+	return false
+}
+
+type number interface {
+	~float32 | ~float64 |
+		~int | ~int8 | ~int16 | ~int32 | ~int64 |
+		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr
+}
+
+// Attempts to get a number of type T from number value fields[key].
+func getNumber[T number](u *T, fields Fields, key string) bool {
+	v, ok := fields[key]
+	if !ok {
+		return false
+	}
+	switch v := v.(type) {
+	case nil:
+		*u = T(0)
+	case float32:
+		*u = T(v)
+	case float64:
+		*u = T(v)
+	case int16:
+		*u = T(v)
+	case int32:
+		*u = T(v)
+	case int64:
+		*u = T(v)
+	case int8:
+		*u = T(v)
+	case int:
+		*u = T(v)
+	case uint16:
+		*u = T(v)
+	case uint32:
+		*u = T(v)
+	case uint64:
+		*u = T(v)
+	case uint8:
+		*u = T(v)
+	case uint:
+		*u = T(v)
+	case uintptr:
+		*u = T(v)
+	default:
+		return false
+	}
+	return true
+}
+
+// Attempts to get a slice of Parameters from fields[key].
+func getParameters(u *[]Parameter, fields Fields, key string) bool {
+	v, ok := fields[key]
+	if !ok {
+		return false
+	}
+	return convertSlice(u, v, convertParameter)
+}
+
+// Attempts to get a slice of Types from fields[key].
+func getReturnType(u *[]Type, fields Fields, key string) bool {
+	v, ok := fields[key]
+	if !ok {
+		return false
+	}
+	return convertSlice(u, v, convertType)
+}
+
+// Attempts to get a Type from fields[key].
+func getType(u *Type, fields Fields, key string) bool {
+	v, ok := fields[key]
+	if !ok {
+		return false
+	}
+	return convertType(u, v)
+}
+
+// Attempts to get a slice of strings from fields[key].
+func getStrings(u *[]string, fields Fields, key string) bool {
+	v, ok := fields[key]
+	if !ok {
+		return false
+	}
+	return convertStrings(u, v)
+}
+
+// Attempts to get Tags from fields[key].
+func getTags(u *Tags, fields Fields, key string) bool {
+	v, ok := fields[key]
+	if !ok {
+		return false
+	}
+	switch v := v.(type) {
+	case nil:
+		*u = nil
+		return true
+	case Tags:
+		*u = v.GetTags()
+		return true
+	case []string:
+		*u = slices.Clone(v)
+		return true
+	case []any:
+		var s []string
+		if !convertStrings(&s, v) {
+			return false
+		}
+		*u = s
+		return true
+	}
+	return false
 }
 
 // Root represents the top-level structure of an API dump.
@@ -210,32 +424,16 @@ func (class *Class) Fields() Fields {
 
 // SetFields implements the Fielder interface.
 func (class *Class) SetFields(fields Fields) {
-	if v, ok := fields["Name"]; ok {
-		if v, ok := v.(string); ok {
-			class.Name = v
-		}
-	}
-	if v, ok := fields["Superclass"]; ok {
-		if v, ok := v.(string); ok {
-			class.Superclass = v
-		}
-	}
-	if v, ok := fields["MemoryCategory"]; ok {
-		if v, ok := v.(string); ok {
-			class.MemoryCategory = v
-		}
-	}
+	getPrimitive(&class.Name, fields, "Name")
+	getPrimitive(&class.Superclass, fields, "Superclass")
+	getPrimitive(&class.MemoryCategory, fields, "MemoryCategory")
+	getTags(&class.Tags, fields, "Tags")
 	if v, ok := fields["Members"]; ok {
 		if v, ok := v.(map[string]Member); ok {
 			class.Members = make(map[string]Member, len(v))
 			for k, v := range v {
 				class.Members[k] = v.MemberCopy()
 			}
-		}
-	}
-	if v, ok := fields["Tags"]; ok {
-		if v, ok := v.(Tags); ok {
-			class.Tags = v.GetTags()
 		}
 	}
 }
@@ -295,51 +493,15 @@ func (member *Property) Fields() Fields {
 
 // SetFields implements the Fielder interface.
 func (member *Property) SetFields(fields Fields) {
-	if v, ok := fields["Name"]; ok {
-		if v, ok := v.(string); ok {
-			member.Name = v
-		}
-	}
-	if v, ok := fields["ValueType"]; ok {
-		if v, ok := v.(Type); ok {
-			member.ValueType = v
-		}
-	}
-	if v, ok := fields["Category"]; ok {
-		if v, ok := v.(string); ok {
-			member.Category = v
-		}
-	}
-	if v, ok := fields["ReadSecurity"]; ok {
-		if v, ok := v.(string); ok {
-			member.ReadSecurity = v
-		}
-	}
-	if v, ok := fields["WriteSecurity"]; ok {
-		if v, ok := v.(string); ok {
-			member.WriteSecurity = v
-		}
-	}
-	if v, ok := fields["CanLoad"]; ok {
-		if v, ok := v.(bool); ok {
-			member.CanLoad = v
-		}
-	}
-	if v, ok := fields["CanSave"]; ok {
-		if v, ok := v.(bool); ok {
-			member.CanSave = v
-		}
-	}
-	if v, ok := fields["ThreadSafety"]; ok {
-		if v, ok := v.(string); ok {
-			member.ThreadSafety = v
-		}
-	}
-	if v, ok := fields["Tags"]; ok {
-		if v, ok := v.(Tags); ok {
-			member.Tags = v.GetTags()
-		}
-	}
+	getPrimitive(&member.Name, fields, "Name")
+	getType(&member.ValueType, fields, "ValueType")
+	getPrimitive(&member.Category, fields, "Category")
+	getPrimitive(&member.ReadSecurity, fields, "ReadSecurity")
+	getPrimitive(&member.WriteSecurity, fields, "WriteSecurity")
+	getPrimitive(&member.CanLoad, fields, "CanLoad")
+	getPrimitive(&member.CanSave, fields, "CanSave")
+	getPrimitive(&member.ThreadSafety, fields, "ThreadSafety")
+	getTags(&member.Tags, fields, "Tags")
 }
 
 // Function is a Member that represents a class function.
@@ -392,39 +554,12 @@ func (member *Function) Fields() Fields {
 
 // SetFields implements the Fielder interface.
 func (member *Function) SetFields(fields Fields) {
-	if v, ok := fields["Name"]; ok {
-		if v, ok := v.(string); ok {
-			member.Name = v
-		}
-	}
-	if v, ok := fields["Parameters"]; ok {
-		if v, ok := v.([]Parameter); ok {
-			member.Parameters = CopyParams(v)
-		}
-	}
-	if v, ok := fields["ReturnType"]; ok {
-		switch v := v.(type) {
-		case Type:
-			member.ReturnType = []Type{v}
-		case []Type:
-			member.ReturnType = v
-		}
-	}
-	if v, ok := fields["Security"]; ok {
-		if v, ok := v.(string); ok {
-			member.Security = v
-		}
-	}
-	if v, ok := fields["ThreadSafety"]; ok {
-		if v, ok := v.(string); ok {
-			member.ThreadSafety = v
-		}
-	}
-	if v, ok := fields["Tags"]; ok {
-		if v, ok := v.(Tags); ok {
-			member.Tags = v.GetTags()
-		}
-	}
+	getPrimitive(&member.Name, fields, "Name")
+	getParameters(&member.Parameters, fields, "Parameters")
+	getReturnType(&member.ReturnType, fields, "ReturnType")
+	getPrimitive(&member.Security, fields, "Security")
+	getPrimitive(&member.ThreadSafety, fields, "ThreadSafety")
+	getTags(&member.Tags, fields, "Tags")
 }
 
 // Event is a Member that represents a class event.
@@ -475,31 +610,11 @@ func (member *Event) Fields() Fields {
 
 // SetFields implements the Fielder interface.
 func (member *Event) SetFields(fields Fields) {
-	if v, ok := fields["Name"]; ok {
-		if v, ok := v.(string); ok {
-			member.Name = v
-		}
-	}
-	if v, ok := fields["Parameters"]; ok {
-		if v, ok := v.([]Parameter); ok {
-			member.Parameters = CopyParams(v)
-		}
-	}
-	if v, ok := fields["Security"]; ok {
-		if v, ok := v.(string); ok {
-			member.Security = v
-		}
-	}
-	if v, ok := fields["ThreadSafety"]; ok {
-		if v, ok := v.(string); ok {
-			member.ThreadSafety = v
-		}
-	}
-	if v, ok := fields["Tags"]; ok {
-		if v, ok := v.(Tags); ok {
-			member.Tags = v.GetTags()
-		}
-	}
+	getPrimitive(&member.Name, fields, "Name")
+	getParameters(&member.Parameters, fields, "Parameters")
+	getPrimitive(&member.Security, fields, "Security")
+	getPrimitive(&member.ThreadSafety, fields, "ThreadSafety")
+	getTags(&member.Tags, fields, "Tags")
 }
 
 // Callback is a Member that represents a class callback.
@@ -552,39 +667,12 @@ func (member *Callback) Fields() Fields {
 
 // SetFields implements the Fielder interface.
 func (member *Callback) SetFields(fields Fields) {
-	if v, ok := fields["Name"]; ok {
-		if v, ok := v.(string); ok {
-			member.Name = v
-		}
-	}
-	if v, ok := fields["Parameters"]; ok {
-		if v, ok := v.([]Parameter); ok {
-			member.Parameters = CopyParams(v)
-		}
-	}
-	if v, ok := fields["ReturnType"]; ok {
-		switch v := v.(type) {
-		case Type:
-			member.ReturnType = []Type{v}
-		case []Type:
-			member.ReturnType = v
-		}
-	}
-	if v, ok := fields["Security"]; ok {
-		if v, ok := v.(string); ok {
-			member.Security = v
-		}
-	}
-	if v, ok := fields["ThreadSafety"]; ok {
-		if v, ok := v.(string); ok {
-			member.ThreadSafety = v
-		}
-	}
-	if v, ok := fields["Tags"]; ok {
-		if v, ok := v.(Tags); ok {
-			member.Tags = v.GetTags()
-		}
-	}
+	getPrimitive(&member.Name, fields, "Name")
+	getParameters(&member.Parameters, fields, "Parameters")
+	getReturnType(&member.ReturnType, fields, "ReturnType")
+	getPrimitive(&member.Security, fields, "Security")
+	getPrimitive(&member.ThreadSafety, fields, "ThreadSafety")
+	getTags(&member.Tags, fields, "Tags")
 }
 
 // Enum represents an enum defined in an API dump.
@@ -640,22 +728,14 @@ func (enum *Enum) Fields() Fields {
 
 // SetFields implements the Fielder interface.
 func (enum *Enum) SetFields(fields Fields) {
-	if v, ok := fields["Name"]; ok {
-		if v, ok := v.(string); ok {
-			enum.Name = v
-		}
-	}
+	getPrimitive(&enum.Name, fields, "Name")
+	getTags(&enum.Tags, fields, "Tags")
 	if v, ok := fields["Items"]; ok {
 		if v, ok := v.(map[string]*EnumItem); ok {
 			enum.Items = make(map[string]*EnumItem, len(v))
 			for k, v := range v {
 				enum.Items[k] = v.Copy()
 			}
-		}
-	}
-	if v, ok := fields["Tags"]; ok {
-		if v, ok := v.(Tags); ok {
-			enum.Tags = v.GetTags()
 		}
 	}
 }
@@ -690,31 +770,11 @@ func (item *EnumItem) Fields() Fields {
 
 // SetFields implements the Fielder interface.
 func (item *EnumItem) SetFields(fields Fields) {
-	if v, ok := fields["Name"]; ok {
-		if v, ok := v.(string); ok {
-			item.Name = v
-		}
-	}
-	if v, ok := fields["Value"]; ok {
-		if v, ok := v.(int); ok {
-			item.Value = v
-		}
-	}
-	if v, ok := fields["Index"]; ok {
-		if v, ok := v.(int); ok {
-			item.Index = v
-		}
-	}
-	if v, ok := fields["Tags"]; ok {
-		if v, ok := v.(Tags); ok {
-			item.Tags = v.GetTags()
-		}
-	}
-	if v, ok := fields["LegacyNames"]; ok {
-		if v, ok := v.([]string); ok {
-			item.LegacyNames = v
-		}
-	}
+	getPrimitive(&item.Name, fields, "Name")
+	getNumber(&item.Value, fields, "Value")
+	getNumber(&item.Index, fields, "Index")
+	getStrings(&item.LegacyNames, fields, "LegacyNames")
+	getTags(&item.Tags, fields, "Tags")
 }
 
 // Parameter represents a parameter of a function, event, or callback member.
