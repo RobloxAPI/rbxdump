@@ -67,6 +67,7 @@ type jProperty struct {
 	ThreadSafety  string `json:",omitempty"`
 	Tags          []jTag `json:",omitempty"`
 	ValueType     rbxdump.Type
+	Default       string
 }
 
 type jReturnType []rbxdump.Type

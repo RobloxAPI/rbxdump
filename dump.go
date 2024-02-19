@@ -481,6 +481,7 @@ func (class *Class) SetFields(fields Fields) {
 type Property struct {
 	Name                string
 	ValueType           Type
+	Default             string
 	Category            string
 	ReadSecurity        string
 	WriteSecurity       string
@@ -521,6 +522,7 @@ func (member *Property) Fields() Fields {
 	fields := Fields{
 		"Name":          member.Name,
 		"ValueType":     member.ValueType,
+		"Default":       member.Default,
 		"Category":      member.Category,
 		"ReadSecurity":  member.ReadSecurity,
 		"WriteSecurity": member.WriteSecurity,
@@ -537,6 +539,7 @@ func (member *Property) Fields() Fields {
 func (member *Property) SetFields(fields Fields) {
 	getPrimitive(&member.Name, fields, "Name")
 	getType(&member.ValueType, fields, "ValueType")
+	getPrimitive(&member.Default, fields, "Default")
 	getPrimitive(&member.Category, fields, "Category")
 	getPrimitive(&member.ReadSecurity, fields, "ReadSecurity")
 	getPrimitive(&member.WriteSecurity, fields, "WriteSecurity")

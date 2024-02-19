@@ -209,6 +209,7 @@ func (member jMember) MarshalJSON() (b []byte, err error) {
 			MemberType:   "Property",
 			Name:         member.Name,
 			ValueType:    member.ValueType,
+			Default:      member.Default,
 			Category:     member.Category,
 			ThreadSafety: member.ThreadSafety,
 			Tags:         marshalTags(member.Tags, member.PreferredDescriptor),

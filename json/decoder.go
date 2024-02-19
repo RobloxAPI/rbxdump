@@ -83,6 +83,7 @@ func (jmember *jMember) UnmarshalJSON(b []byte) (err error) {
 		jmember.Member = &rbxdump.Property{
 			Name:                member.Name,
 			ValueType:           member.ValueType,
+			Default:             member.Default,
 			Category:            member.Category,
 			ReadSecurity:        member.Security.Read,
 			WriteSecurity:       member.Security.Write,
