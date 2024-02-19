@@ -28,12 +28,27 @@ type jRoot struct {
 	rbxdump.Root
 }
 
+func unmarshalTags(jtags []jTag) (tags []string, pd rbxdump.PreferredDescriptor) {
+	tags = make([]string, 0, len(jtags))
+	for _, jtag := range jtags {
+		if jtag.Preferred == nil {
+			tags = append(tags, jtag.Tag)
+		} else {
+			pd = rbxdump.PreferredDescriptor{
+				Name:         jtag.Preferred.PreferredDescriptorName,
+				ThreadSafety: jtag.Preferred.ThreadSafety,
+			}
+		}
+	}
+	return tags, pd
+}
+
 type jClass struct {
 	Members        []jMember
 	MemoryCategory string
 	Name           string
 	Superclass     string
-	Tags           []string `json:",omitempty"`
+	Tags           []jTag `json:",omitempty"`
 
 	index int
 }
@@ -49,8 +64,8 @@ type jProperty struct {
 	Name          string
 	Security      struct{ Read, Write string }
 	Serialization struct{ CanLoad, CanSave bool }
-	ThreadSafety  string   `json:",omitempty"`
-	Tags          []string `json:",omitempty"`
+	ThreadSafety  string `json:",omitempty"`
+	Tags          []jTag `json:",omitempty"`
 	ValueType     rbxdump.Type
 }
 
@@ -84,8 +99,8 @@ type jFunction struct {
 	Parameters   []jParameter
 	ReturnType   jReturnType
 	Security     string
-	ThreadSafety string   `json:",omitempty"`
-	Tags         []string `json:",omitempty"`
+	ThreadSafety string `json:",omitempty"`
+	Tags         []jTag `json:",omitempty"`
 }
 
 type jEvent struct {
@@ -93,8 +108,8 @@ type jEvent struct {
 	Name         string
 	Parameters   []jBasicParameter
 	Security     string
-	ThreadSafety string   `json:",omitempty"`
-	Tags         []string `json:",omitempty"`
+	ThreadSafety string `json:",omitempty"`
+	Tags         []jTag `json:",omitempty"`
 }
 
 type jCallback struct {
@@ -103,19 +118,19 @@ type jCallback struct {
 	Parameters   []jBasicParameter
 	ReturnType   jReturnType
 	Security     string
-	ThreadSafety string   `json:",omitempty"`
-	Tags         []string `json:",omitempty"`
+	ThreadSafety string `json:",omitempty"`
+	Tags         []jTag `json:",omitempty"`
 }
 
 type jEnum struct {
 	Items []jEnumItem
 	Name  string
-	Tags  []string `json:",omitempty"`
+	Tags  []jTag `json:",omitempty"`
 }
 
 type jEnumItem struct {
 	Name        string
-	Tags        []string `json:",omitempty"`
+	Tags        []jTag   `json:",omitempty"`
 	LegacyNames []string `json:",omitempty"`
 	Value       int
 
@@ -127,4 +142,35 @@ type jParameter rbxdump.Parameter
 type jBasicParameter struct {
 	Name string
 	Type rbxdump.Type
+}
+
+type jTag struct {
+	Tag       string
+	Preferred *jPreferredDescriptor
+}
+
+func (tag *jTag) UnmarshalJSON(b []byte) (err error) {
+	var stringTag string
+	if err := json.Unmarshal(b, &stringTag); err == nil {
+		tag.Tag = stringTag
+		return nil
+	}
+	var pdTag jPreferredDescriptor
+	if err := json.Unmarshal(b, &pdTag); err != nil {
+		return err
+	}
+	tag.Preferred = &pdTag
+	return nil
+}
+
+func (tag *jTag) MarshalJSON() (b []byte, err error) {
+	if tag.Preferred != nil {
+		return json.Marshal(*tag.Preferred)
+	}
+	return json.Marshal(tag.Tag)
+}
+
+type jPreferredDescriptor struct {
+	PreferredDescriptorName string
+	ThreadSafety            string
 }

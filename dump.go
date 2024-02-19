@@ -130,6 +130,34 @@ func convertType(u *Type, v any) bool {
 	return false
 }
 
+func getPreferredDescriptor(u *PreferredDescriptor, fields Fields, key string) bool {
+	v, ok := fields[key]
+	if !ok {
+		return false
+	}
+	switch v := v.(type) {
+	case nil:
+		*u = PreferredDescriptor{}
+		return true
+	case PreferredDescriptor:
+		*u = v
+	case *PreferredDescriptor:
+		*u = *v
+	case map[string]any:
+		var d PreferredDescriptor
+		var ok bool
+		if d.Name, ok = v["Name"].(string); !ok {
+			return false
+		}
+		if d.ThreadSafety, ok = v["ThreadSafety"].(string); !ok {
+			return false
+		}
+		*u = d
+		return true
+	}
+	return false
+}
+
 // Attempts to get a slice of strings from v.
 func convertStrings(u *[]string, v any) bool {
 	switch v := v.(type) {
@@ -278,6 +306,13 @@ func getTags(u *Tags, fields Fields, key string) bool {
 	return false
 }
 
+// If pd is non-zero, then assign it in fields to "PreferredDescriptor".
+func includePD(fields Fields, pd PreferredDescriptor) {
+	if pd != (PreferredDescriptor{}) {
+		fields["PreferredDescriptor"] = pd
+	}
+}
+
 // Root represents the top-level structure of an API dump.
 type Root struct {
 	Classes map[string]*Class
@@ -363,10 +398,11 @@ func (root *Root) SetFields(fields Fields) {
 
 // Class represents a class defined in an API dump.
 type Class struct {
-	Name           string
-	Superclass     string
-	MemoryCategory string
-	Members        map[string]Member
+	Name                string
+	Superclass          string
+	MemoryCategory      string
+	Members             map[string]Member
+	PreferredDescriptor PreferredDescriptor
 	Tags
 }
 
@@ -414,12 +450,14 @@ func (class *Class) Copy() *Class {
 
 // Fields implements the Fielder interface. Does not return the Members field.
 func (class *Class) Fields() Fields {
-	return Fields{
+	fields := Fields{
 		"Name":           class.Name,
 		"Superclass":     class.Superclass,
 		"MemoryCategory": class.MemoryCategory,
 		"Tags":           class.Tags,
 	}
+	includePD(fields, class.PreferredDescriptor)
+	return fields
 }
 
 // SetFields implements the Fielder interface.
@@ -427,6 +465,7 @@ func (class *Class) SetFields(fields Fields) {
 	getPrimitive(&class.Name, fields, "Name")
 	getPrimitive(&class.Superclass, fields, "Superclass")
 	getPrimitive(&class.MemoryCategory, fields, "MemoryCategory")
+	getPreferredDescriptor(&class.PreferredDescriptor, fields, "PreferredDescriptor")
 	getTags(&class.Tags, fields, "Tags")
 	if v, ok := fields["Members"]; ok {
 		if v, ok := v.(map[string]Member); ok {
@@ -440,14 +479,15 @@ func (class *Class) SetFields(fields Fields) {
 
 // Property is a Member that represents a class property.
 type Property struct {
-	Name          string
-	ValueType     Type
-	Category      string
-	ReadSecurity  string
-	WriteSecurity string
-	CanLoad       bool
-	CanSave       bool
-	ThreadSafety  string
+	Name                string
+	ValueType           Type
+	Category            string
+	ReadSecurity        string
+	WriteSecurity       string
+	CanLoad             bool
+	CanSave             bool
+	ThreadSafety        string
+	PreferredDescriptor PreferredDescriptor
 	Tags
 }
 
@@ -478,7 +518,7 @@ func (member *Property) Copy() *Property {
 
 // Fields implements the Fielder interface.
 func (member *Property) Fields() Fields {
-	return Fields{
+	fields := Fields{
 		"Name":          member.Name,
 		"ValueType":     member.ValueType,
 		"Category":      member.Category,
@@ -489,6 +529,8 @@ func (member *Property) Fields() Fields {
 		"ThreadSafety":  member.ThreadSafety,
 		"Tags":          member.Tags,
 	}
+	includePD(fields, member.PreferredDescriptor)
+	return fields
 }
 
 // SetFields implements the Fielder interface.
@@ -501,16 +543,18 @@ func (member *Property) SetFields(fields Fields) {
 	getPrimitive(&member.CanLoad, fields, "CanLoad")
 	getPrimitive(&member.CanSave, fields, "CanSave")
 	getPrimitive(&member.ThreadSafety, fields, "ThreadSafety")
+	getPreferredDescriptor(&member.PreferredDescriptor, fields, "PreferredDescriptor")
 	getTags(&member.Tags, fields, "Tags")
 }
 
 // Function is a Member that represents a class function.
 type Function struct {
-	Name         string
-	Parameters   []Parameter
-	ReturnType   []Type
-	Security     string
-	ThreadSafety string
+	Name                string
+	Parameters          []Parameter
+	ReturnType          []Type
+	Security            string
+	ThreadSafety        string
+	PreferredDescriptor PreferredDescriptor
 	Tags
 }
 
@@ -542,7 +586,7 @@ func (member *Function) Copy() *Function {
 
 // Fields implements the Fielder interface.
 func (member *Function) Fields() Fields {
-	return Fields{
+	fields := Fields{
 		"Name":         member.Name,
 		"Parameters":   member.Parameters,
 		"ReturnType":   member.ReturnType,
@@ -550,6 +594,8 @@ func (member *Function) Fields() Fields {
 		"ThreadSafety": member.ThreadSafety,
 		"Tags":         member.Tags,
 	}
+	includePD(fields, member.PreferredDescriptor)
+	return fields
 }
 
 // SetFields implements the Fielder interface.
@@ -559,15 +605,17 @@ func (member *Function) SetFields(fields Fields) {
 	getReturnType(&member.ReturnType, fields, "ReturnType")
 	getPrimitive(&member.Security, fields, "Security")
 	getPrimitive(&member.ThreadSafety, fields, "ThreadSafety")
+	getPreferredDescriptor(&member.PreferredDescriptor, fields, "PreferredDescriptor")
 	getTags(&member.Tags, fields, "Tags")
 }
 
 // Event is a Member that represents a class event.
 type Event struct {
-	Name         string
-	Parameters   []Parameter
-	Security     string
-	ThreadSafety string
+	Name                string
+	Parameters          []Parameter
+	Security            string
+	ThreadSafety        string
+	PreferredDescriptor PreferredDescriptor
 	Tags
 }
 
@@ -599,13 +647,15 @@ func (member *Event) Copy() *Event {
 
 // Fields implements the Fielder interface.
 func (member *Event) Fields() Fields {
-	return Fields{
+	fields := Fields{
 		"Name":         member.Name,
 		"Parameters":   member.Parameters,
 		"Security":     member.Security,
 		"ThreadSafety": member.ThreadSafety,
 		"Tags":         member.Tags,
 	}
+	includePD(fields, member.PreferredDescriptor)
+	return fields
 }
 
 // SetFields implements the Fielder interface.
@@ -614,16 +664,18 @@ func (member *Event) SetFields(fields Fields) {
 	getParameters(&member.Parameters, fields, "Parameters")
 	getPrimitive(&member.Security, fields, "Security")
 	getPrimitive(&member.ThreadSafety, fields, "ThreadSafety")
+	getPreferredDescriptor(&member.PreferredDescriptor, fields, "PreferredDescriptor")
 	getTags(&member.Tags, fields, "Tags")
 }
 
 // Callback is a Member that represents a class callback.
 type Callback struct {
-	Name         string
-	Parameters   []Parameter
-	ReturnType   []Type
-	Security     string
-	ThreadSafety string
+	Name                string
+	Parameters          []Parameter
+	ReturnType          []Type
+	Security            string
+	ThreadSafety        string
+	PreferredDescriptor PreferredDescriptor
 	Tags
 }
 
@@ -655,7 +707,7 @@ func (member *Callback) Copy() *Callback {
 
 // Fields implements the Fielder interface.
 func (member *Callback) Fields() Fields {
-	return Fields{
+	fields := Fields{
 		"Name":         member.Name,
 		"Parameters":   member.Parameters,
 		"ReturnType":   member.ReturnType,
@@ -663,6 +715,8 @@ func (member *Callback) Fields() Fields {
 		"ThreadSafety": member.ThreadSafety,
 		"Tags":         member.Tags,
 	}
+	includePD(fields, member.PreferredDescriptor)
+	return fields
 }
 
 // SetFields implements the Fielder interface.
@@ -672,13 +726,15 @@ func (member *Callback) SetFields(fields Fields) {
 	getReturnType(&member.ReturnType, fields, "ReturnType")
 	getPrimitive(&member.Security, fields, "Security")
 	getPrimitive(&member.ThreadSafety, fields, "ThreadSafety")
+	getPreferredDescriptor(&member.PreferredDescriptor, fields, "PreferredDescriptor")
 	getTags(&member.Tags, fields, "Tags")
 }
 
 // Enum represents an enum defined in an API dump.
 type Enum struct {
-	Name  string
-	Items map[string]*EnumItem
+	Name                string
+	Items               map[string]*EnumItem
+	PreferredDescriptor PreferredDescriptor
 	Tags
 }
 
@@ -720,15 +776,18 @@ func (enum *Enum) Copy() *Enum {
 
 // Fields implements the Fielder interface. Does not return the Items field.
 func (enum *Enum) Fields() Fields {
-	return Fields{
+	fields := Fields{
 		"Name": enum.Name,
 		"Tags": enum.Tags,
 	}
+	includePD(fields, enum.PreferredDescriptor)
+	return fields
 }
 
 // SetFields implements the Fielder interface.
 func (enum *Enum) SetFields(fields Fields) {
 	getPrimitive(&enum.Name, fields, "Name")
+	getPreferredDescriptor(&enum.PreferredDescriptor, fields, "PreferredDescriptor")
 	getTags(&enum.Tags, fields, "Tags")
 	if v, ok := fields["Items"]; ok {
 		if v, ok := v.(map[string]*EnumItem); ok {
@@ -742,11 +801,12 @@ func (enum *Enum) SetFields(fields Fields) {
 
 // EnumItem represents an enum item.
 type EnumItem struct {
-	Name  string
-	Value int
-	Index int // Index determines the item's order among its sibling items.
+	Name                string
+	Value               int
+	Index               int // Index determines the item's order among its sibling items.
+	LegacyNames         []string
+	PreferredDescriptor PreferredDescriptor
 	Tags
-	LegacyNames []string
 }
 
 // Copy returns a deep copy of the enum item.
@@ -759,13 +819,15 @@ func (item *EnumItem) Copy() *EnumItem {
 
 // Fields implements the Fielder interface.
 func (item *EnumItem) Fields() Fields {
-	return Fields{
+	fields := Fields{
 		"Name":        item.Name,
 		"Value":       item.Value,
 		"Index":       item.Index,
-		"Tags":        item.Tags,
 		"LegacyNames": item.LegacyNames,
+		"Tags":        item.Tags,
 	}
+	includePD(fields, item.PreferredDescriptor)
+	return fields
 }
 
 // SetFields implements the Fielder interface.
@@ -774,6 +836,7 @@ func (item *EnumItem) SetFields(fields Fields) {
 	getNumber(&item.Value, fields, "Value")
 	getNumber(&item.Index, fields, "Index")
 	getStrings(&item.LegacyNames, fields, "LegacyNames")
+	getPreferredDescriptor(&item.PreferredDescriptor, fields, "PreferredDescriptor")
 	getTags(&item.Tags, fields, "Tags")
 }
 
@@ -804,6 +867,13 @@ func (typ Type) String() string {
 		return typ.Name
 	}
 	return typ.Category + ":" + typ.Name
+}
+
+// PreferredDescriptor refers to an alternative of a deprecated descriptor.
+type PreferredDescriptor struct {
+	// The name of the alternative descriptor.
+	Name         string
+	ThreadSafety string
 }
 
 // Tagger is implemented by any value that contains a set of tags.

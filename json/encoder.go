@@ -127,6 +127,25 @@ func (a jEnumItems) Less(i, j int) bool {
 	return a[i].index < a[j].index
 }
 
+func marshalTags(tags []string, pd rbxdump.PreferredDescriptor) (jtags []jTag) {
+	n := len(tags)
+	if pd != (rbxdump.PreferredDescriptor{}) {
+		n += 1
+	}
+	jtags = make([]jTag, 0, n)
+	for _, tag := range tags {
+		jtags = append(jtags, jTag{Tag: tag})
+		if tag == "Deprecated" && pd != (rbxdump.PreferredDescriptor{}) {
+			p := jPreferredDescriptor{
+				PreferredDescriptorName: pd.Name,
+				ThreadSafety:            pd.ThreadSafety,
+			}
+			jtags = append(jtags, jTag{Preferred: &p})
+		}
+	}
+	return jtags
+}
+
 func (root jRoot) MarshalJSON() (b []byte, err error) {
 	var r struct {
 		Version int
@@ -153,7 +172,7 @@ func (root jRoot) MarshalJSON() (b []byte, err error) {
 			Superclass:     class.Superclass,
 			MemoryCategory: class.MemoryCategory,
 			Members:        members,
-			Tags:           class.Tags,
+			Tags:           marshalTags(class.Tags, class.PreferredDescriptor),
 		})
 	}
 	sortByInheritance(r.Classes)
@@ -165,7 +184,7 @@ func (root jRoot) MarshalJSON() (b []byte, err error) {
 			items = append(items, jEnumItem{
 				Name:        item.Name,
 				Value:       item.Value,
-				Tags:        item.Tags,
+				Tags:        marshalTags(item.Tags, item.PreferredDescriptor),
 				LegacyNames: item.LegacyNames,
 				index:       item.Index,
 			})
@@ -174,7 +193,7 @@ func (root jRoot) MarshalJSON() (b []byte, err error) {
 		r.Enums = append(r.Enums, jEnum{
 			Name:  enum.Name,
 			Items: items,
-			Tags:  enum.Tags,
+			Tags:  marshalTags(enum.Tags, enum.PreferredDescriptor),
 		})
 	}
 	sort.Sort(jEnums(r.Enums))
@@ -192,7 +211,7 @@ func (member jMember) MarshalJSON() (b []byte, err error) {
 			ValueType:    member.ValueType,
 			Category:     member.Category,
 			ThreadSafety: member.ThreadSafety,
-			Tags:         member.Tags,
+			Tags:         marshalTags(member.Tags, member.PreferredDescriptor),
 		}
 		m.Security.Read = member.ReadSecurity
 		m.Security.Write = member.WriteSecurity
@@ -211,7 +230,7 @@ func (member jMember) MarshalJSON() (b []byte, err error) {
 			ReturnType:   member.ReturnType,
 			Security:     member.Security,
 			ThreadSafety: member.ThreadSafety,
-			Tags:         member.Tags,
+			Tags:         marshalTags(member.Tags, member.PreferredDescriptor),
 		}
 		jmember = m
 	case *rbxdump.Event:
@@ -225,7 +244,7 @@ func (member jMember) MarshalJSON() (b []byte, err error) {
 			Parameters:   params,
 			Security:     member.Security,
 			ThreadSafety: member.ThreadSafety,
-			Tags:         member.Tags,
+			Tags:         marshalTags(member.Tags, member.PreferredDescriptor),
 		}
 		jmember = m
 	case *rbxdump.Callback:
@@ -240,7 +259,7 @@ func (member jMember) MarshalJSON() (b []byte, err error) {
 			ReturnType:   member.ReturnType,
 			Security:     member.Security,
 			ThreadSafety: member.ThreadSafety,
-			Tags:         member.Tags,
+			Tags:         marshalTags(member.Tags, member.PreferredDescriptor),
 		}
 		jmember = m
 	}

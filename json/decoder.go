@@ -25,12 +25,14 @@ func (root *jRoot) UnmarshalJSON(b []byte) (err error) {
 
 		root.Classes = make(map[string]*rbxdump.Class, len(r.Classes))
 		for _, jclass := range r.Classes {
+			tags, pd := unmarshalTags(jclass.Tags)
 			class := rbxdump.Class{
-				Name:           jclass.Name,
-				Superclass:     jclass.Superclass,
-				MemoryCategory: jclass.MemoryCategory,
-				Members:        make(map[string]rbxdump.Member, len(jclass.Members)),
-				Tags:           jclass.Tags,
+				Name:                jclass.Name,
+				Superclass:          jclass.Superclass,
+				MemoryCategory:      jclass.MemoryCategory,
+				Members:             make(map[string]rbxdump.Member, len(jclass.Members)),
+				PreferredDescriptor: pd,
+				Tags:                tags,
 			}
 			for _, jmember := range jclass.Members {
 				class.Members[jmember.MemberName()] = jmember.Member
@@ -40,18 +42,22 @@ func (root *jRoot) UnmarshalJSON(b []byte) (err error) {
 
 		root.Enums = make(map[string]*rbxdump.Enum, len(r.Enums))
 		for _, jenum := range r.Enums {
+			tags, pd := unmarshalTags(jenum.Tags)
 			enum := rbxdump.Enum{
-				Name:  jenum.Name,
-				Items: make(map[string]*rbxdump.EnumItem, len(jenum.Items)),
-				Tags:  jenum.Tags,
+				Name:                jenum.Name,
+				Items:               make(map[string]*rbxdump.EnumItem, len(jenum.Items)),
+				PreferredDescriptor: pd,
+				Tags:                tags,
 			}
 			for i, jitem := range jenum.Items {
+				tags, pd := unmarshalTags(jitem.Tags)
 				enum.Items[jitem.Name] = &rbxdump.EnumItem{
-					Name:        jitem.Name,
-					Value:       jitem.Value,
-					Index:       i,
-					Tags:        jitem.Tags,
-					LegacyNames: jitem.LegacyNames,
+					Name:                jitem.Name,
+					Value:               jitem.Value,
+					Index:               i,
+					PreferredDescriptor: pd,
+					Tags:                tags,
+					LegacyNames:         jitem.LegacyNames,
 				}
 			}
 			root.Enums[enum.Name] = &enum
@@ -73,16 +79,18 @@ func (jmember *jMember) UnmarshalJSON(b []byte) (err error) {
 		if err := json.Unmarshal(b, &member); err != nil {
 			return err
 		}
+		tags, pd := unmarshalTags(member.Tags)
 		jmember.Member = &rbxdump.Property{
-			Name:          member.Name,
-			ValueType:     member.ValueType,
-			Category:      member.Category,
-			ReadSecurity:  member.Security.Read,
-			WriteSecurity: member.Security.Write,
-			CanLoad:       member.Serialization.CanLoad,
-			CanSave:       member.Serialization.CanSave,
-			ThreadSafety:  member.ThreadSafety,
-			Tags:          member.Tags,
+			Name:                member.Name,
+			ValueType:           member.ValueType,
+			Category:            member.Category,
+			ReadSecurity:        member.Security.Read,
+			WriteSecurity:       member.Security.Write,
+			CanLoad:             member.Serialization.CanLoad,
+			CanSave:             member.Serialization.CanSave,
+			ThreadSafety:        member.ThreadSafety,
+			PreferredDescriptor: pd,
+			Tags:                tags,
 		}
 
 	case "Function":
@@ -94,13 +102,15 @@ func (jmember *jMember) UnmarshalJSON(b []byte) (err error) {
 		for i, param := range member.Parameters {
 			params[i] = rbxdump.Parameter(param)
 		}
+		tags, pd := unmarshalTags(member.Tags)
 		jmember.Member = &rbxdump.Function{
-			Name:         member.Name,
-			Parameters:   params,
-			ReturnType:   member.ReturnType,
-			Security:     member.Security,
-			ThreadSafety: member.ThreadSafety,
-			Tags:         member.Tags,
+			Name:                member.Name,
+			Parameters:          params,
+			ReturnType:          member.ReturnType,
+			Security:            member.Security,
+			ThreadSafety:        member.ThreadSafety,
+			PreferredDescriptor: pd,
+			Tags:                tags,
 		}
 
 	case "Event":
@@ -112,12 +122,14 @@ func (jmember *jMember) UnmarshalJSON(b []byte) (err error) {
 		for i, param := range member.Parameters {
 			params[i] = rbxdump.Parameter{Type: param.Type, Name: param.Name}
 		}
+		tags, pd := unmarshalTags(member.Tags)
 		jmember.Member = &rbxdump.Event{
-			Name:         member.Name,
-			Parameters:   params,
-			Security:     member.Security,
-			ThreadSafety: member.ThreadSafety,
-			Tags:         member.Tags,
+			Name:                member.Name,
+			Parameters:          params,
+			Security:            member.Security,
+			ThreadSafety:        member.ThreadSafety,
+			PreferredDescriptor: pd,
+			Tags:                tags,
 		}
 
 	case "Callback":
@@ -129,13 +141,15 @@ func (jmember *jMember) UnmarshalJSON(b []byte) (err error) {
 		for i, param := range member.Parameters {
 			params[i] = rbxdump.Parameter{Type: param.Type, Name: param.Name}
 		}
+		tags, pd := unmarshalTags(member.Tags)
 		jmember.Member = &rbxdump.Callback{
-			Name:         member.Name,
-			Parameters:   params,
-			ReturnType:   member.ReturnType,
-			Security:     member.Security,
-			ThreadSafety: member.ThreadSafety,
-			Tags:         member.Tags,
+			Name:                member.Name,
+			Parameters:          params,
+			ReturnType:          member.ReturnType,
+			Security:            member.Security,
+			ThreadSafety:        member.ThreadSafety,
+			PreferredDescriptor: pd,
+			Tags:                tags,
 		}
 
 	default:
