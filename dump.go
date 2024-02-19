@@ -313,6 +313,13 @@ func includePD(fields Fields, pd PreferredDescriptor) {
 	}
 }
 
+// If tags is not empty, then assign it in fields to "Tags".
+func includeTags(fields Fields, tags []string) {
+	if len(tags) > 0 {
+		fields["Tags"] = tags
+	}
+}
+
 // Root represents the top-level structure of an API dump.
 type Root struct {
 	Classes map[string]*Class
@@ -454,9 +461,9 @@ func (class *Class) Fields() Fields {
 		"Name":           class.Name,
 		"Superclass":     class.Superclass,
 		"MemoryCategory": class.MemoryCategory,
-		"Tags":           class.Tags,
 	}
 	includePD(fields, class.PreferredDescriptor)
+	includeTags(fields, class.Tags)
 	return fields
 }
 
@@ -529,9 +536,9 @@ func (member *Property) Fields() Fields {
 		"CanLoad":       member.CanLoad,
 		"CanSave":       member.CanSave,
 		"ThreadSafety":  member.ThreadSafety,
-		"Tags":          member.Tags,
 	}
 	includePD(fields, member.PreferredDescriptor)
+	includeTags(fields, member.Tags)
 	return fields
 }
 
@@ -595,9 +602,9 @@ func (member *Function) Fields() Fields {
 		"ReturnType":   member.ReturnType,
 		"Security":     member.Security,
 		"ThreadSafety": member.ThreadSafety,
-		"Tags":         member.Tags,
 	}
 	includePD(fields, member.PreferredDescriptor)
+	includeTags(fields, member.Tags)
 	return fields
 }
 
@@ -655,9 +662,9 @@ func (member *Event) Fields() Fields {
 		"Parameters":   member.Parameters,
 		"Security":     member.Security,
 		"ThreadSafety": member.ThreadSafety,
-		"Tags":         member.Tags,
 	}
 	includePD(fields, member.PreferredDescriptor)
+	includeTags(fields, member.Tags)
 	return fields
 }
 
@@ -716,9 +723,9 @@ func (member *Callback) Fields() Fields {
 		"ReturnType":   member.ReturnType,
 		"Security":     member.Security,
 		"ThreadSafety": member.ThreadSafety,
-		"Tags":         member.Tags,
 	}
 	includePD(fields, member.PreferredDescriptor)
+	includeTags(fields, member.Tags)
 	return fields
 }
 
@@ -781,9 +788,9 @@ func (enum *Enum) Copy() *Enum {
 func (enum *Enum) Fields() Fields {
 	fields := Fields{
 		"Name": enum.Name,
-		"Tags": enum.Tags,
 	}
 	includePD(fields, enum.PreferredDescriptor)
+	includeTags(fields, enum.Tags)
 	return fields
 }
 
@@ -827,9 +834,9 @@ func (item *EnumItem) Fields() Fields {
 		"Value":       item.Value,
 		"Index":       item.Index,
 		"LegacyNames": item.LegacyNames,
-		"Tags":        item.Tags,
 	}
 	includePD(fields, item.PreferredDescriptor)
+	includeTags(fields, item.Tags)
 	return fields
 }
 
