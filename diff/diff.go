@@ -6,19 +6,6 @@ import (
 	"github.com/robloxapi/rbxdump"
 )
 
-// compareTags compares two string slices.
-func compareTags(prev, next []string) bool {
-	if len(prev) != len(next) {
-		return false
-	}
-	for i, s := range prev {
-		if next[i] != s {
-			return false
-		}
-	}
-	return true
-}
-
 // compareParams compares two parameter lists.
 func compareParams(prev, next []rbxdump.Parameter) bool {
 	if len(prev) != len(next) {
@@ -61,64 +48,67 @@ func compareMemberTypes(prev, next rbxdump.Member) (ok bool) {
 	return ok
 }
 
-// compareFields compares two sets of fields, returning the difference. Assumes
-// both contain the same fields, each field having the same type. Only handles
-// field types returned by rbxdump elements.
+// compareFields compares two sets of fields, returning the difference. Only
+// handles field types returned by rbxdump elements.
 func compareFields(prev, next rbxdump.Fields) rbxdump.Fields {
 	fields := rbxdump.Fields{}
-	for name, p := range prev {
-		n := next[name]
-		switch p := p.(type) {
+	for name, n := range next {
+		p := prev[name]
+		switch n := n.(type) {
 		case bool:
-			if n.(bool) != p {
+			if v, ok := p.(bool); !ok || v != n {
 				fields[name] = n
 			}
 		case string:
-			if n.(string) != p {
+			if v, ok := p.(string); !ok || v != n {
 				fields[name] = n
 			}
 		case []string:
-			if !slices.Equal(p, n.([]string)) {
+			if p, ok := p.([]string); !ok || !slices.Equal(p, n) {
 				fields[name] = n
 			}
 		case int:
-			if n.(int) != p {
+			if v, ok := p.(int); !ok || v != n {
 				fields[name] = n
 			}
 		case rbxdump.Type:
-			pa := []rbxdump.Type{p}
-			na := []rbxdump.Type{}
-			switch n := n.(type) {
+			pa := []rbxdump.Type{}
+			na := []rbxdump.Type{n}
+			switch p := p.(type) {
 			case rbxdump.Type:
-				na = []rbxdump.Type{n}
+				pa = []rbxdump.Type{p}
 			case []rbxdump.Type:
-				na = n
+				pa = p
 			default:
-				panic("Type or []Type expected")
+				continue
 			}
 			if !slices.Equal(pa, na) {
 				fields[name] = n
 			}
 		case []rbxdump.Type:
-			pa := p
-			na := []rbxdump.Type{}
-			switch n := n.(type) {
+			pa := []rbxdump.Type{}
+			na := n
+			switch p := p.(type) {
 			case rbxdump.Type:
-				na = []rbxdump.Type{n}
+				pa = []rbxdump.Type{p}
 			case []rbxdump.Type:
-				na = n
+				pa = n
 			default:
-				panic("Type or []Type expected")
+				continue
 			}
 			if !slices.Equal(pa, na) {
 				fields[name] = n
 			}
+		case rbxdump.PreferredDescriptor:
+			if v, ok := p.(rbxdump.PreferredDescriptor); !ok || v != n {
+				fields[name] = n
+			}
 		case rbxdump.Tags:
-			if !compareTags(p, n.(rbxdump.Tags)) {
+			if p, ok := p.(rbxdump.Tags); !ok || !slices.Equal(p, n) {
 				fields[name] = n
 			}
 		case []rbxdump.Parameter:
-			if !compareParams(p, n.([]rbxdump.Parameter)) {
+			if p, ok := p.([]rbxdump.Parameter); !ok || !compareParams(p, n) {
 				fields[name] = n
 			}
 		}
