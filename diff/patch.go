@@ -18,7 +18,7 @@ func (root Patch) Patch(actions []Action) {
 			switch action.Type {
 			case Add:
 				if _, ok := root.Classes[action.Primary]; !ok {
-					class := rbxdump.Class{}
+					class := rbxdump.Class{Name: action.Primary}
 					class.SetFields(action.Fields)
 					if root.Classes == nil {
 						root.Classes = map[string]*rbxdump.Class{}
@@ -40,7 +40,7 @@ func (root Patch) Patch(actions []Action) {
 			switch action.Type {
 			case Add:
 				if _, ok := root.Enums[action.Primary]; !ok {
-					enum := rbxdump.Enum{}
+					enum := rbxdump.Enum{Name: action.Primary}
 					enum.SetFields(action.Fields)
 					if root.Enums == nil {
 						root.Enums = map[string]*rbxdump.Enum{}
@@ -80,7 +80,7 @@ func (class PatchClass) Patch(actions []Action) {
 			switch action.Type {
 			case Add:
 				if _, ok := class.Members[action.Secondary]; !ok {
-					member := rbxdump.Property{}
+					member := rbxdump.Property{Name: action.Secondary}
 					member.SetFields(action.Fields)
 					if class.Members == nil {
 						class.Members = map[string]rbxdump.Member{}
@@ -104,7 +104,7 @@ func (class PatchClass) Patch(actions []Action) {
 			switch action.Type {
 			case Add:
 				if _, ok := class.Members[action.Secondary]; !ok {
-					member := rbxdump.Function{}
+					member := rbxdump.Function{Name: action.Secondary}
 					member.SetFields(action.Fields)
 					if class.Members == nil {
 						class.Members = map[string]rbxdump.Member{}
@@ -128,7 +128,7 @@ func (class PatchClass) Patch(actions []Action) {
 			switch action.Type {
 			case Add:
 				if _, ok := class.Members[action.Secondary]; !ok {
-					member := rbxdump.Event{}
+					member := rbxdump.Event{Name: action.Secondary}
 					member.SetFields(action.Fields)
 					if class.Members == nil {
 						class.Members = map[string]rbxdump.Member{}
@@ -152,7 +152,7 @@ func (class PatchClass) Patch(actions []Action) {
 			switch action.Type {
 			case Add:
 				if _, ok := class.Members[action.Secondary]; !ok {
-					member := rbxdump.Callback{}
+					member := rbxdump.Callback{Name: action.Secondary}
 					member.SetFields(action.Fields)
 					if class.Members == nil {
 						class.Members = map[string]rbxdump.Member{}
@@ -266,7 +266,7 @@ func (enum PatchEnum) Patch(actions []Action) {
 			switch action.Type {
 			case Add:
 				if _, ok := enum.Items[action.Secondary]; !ok {
-					item := rbxdump.EnumItem{}
+					item := rbxdump.EnumItem{Name: action.Secondary}
 					item.SetFields(action.Fields)
 					if enum.Items == nil {
 						enum.Items = map[string]*rbxdump.EnumItem{}
