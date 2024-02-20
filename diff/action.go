@@ -170,6 +170,44 @@ type Action struct {
 	Fields rbxdump.Fields
 }
 
+func (a *Action) UnmarshalJSON(b []byte) error {
+	var action struct {
+		Type      Type
+		Element   Element
+		Primary   string
+		Secondary string
+		Fields    rbxdump.Fields
+	}
+	if err := json.Unmarshal(b, &action); err != nil {
+		return err
+	}
+	if len(action.Fields) > 0 {
+		// Convert generic JSON structure to rbxdump values.
+		var f rbxdump.Fielder
+		switch action.Element {
+		case Class:
+			f = &rbxdump.Class{Name: action.Primary}
+		case Property:
+			f = &rbxdump.Property{Name: action.Secondary}
+		case Function:
+			f = &rbxdump.Function{Name: action.Secondary}
+		case Event:
+			f = &rbxdump.Event{Name: action.Secondary}
+		case Callback:
+			f = &rbxdump.Callback{Name: action.Secondary}
+		case Enum:
+			f = &rbxdump.Enum{Name: action.Primary}
+		case EnumItem:
+			f = &rbxdump.EnumItem{Name: action.Secondary}
+		}
+		f.SetFields(action.Fields)
+		action.Fields = f.Fields()
+		delete(action.Fields, "Name")
+	}
+	*a = Action(action)
+	return nil
+}
+
 func (a Action) String() string {
 	s := a.Type.String() + " " + a.Element.String() + " " + a.Primary
 	switch a.Element {
