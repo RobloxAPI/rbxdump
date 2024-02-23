@@ -200,9 +200,7 @@ func (a *Action) UnmarshalJSON(b []byte) error {
 		case EnumItem:
 			f = &rbxdump.EnumItem{Name: action.Secondary}
 		}
-		f.SetFields(action.Fields)
-		action.Fields = f.Fields()
-		delete(action.Fields, "Name")
+		action.Fields = f.Fields(action.Fields)
 	}
 	*a = Action(action)
 	return nil

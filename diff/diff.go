@@ -56,15 +56,15 @@ func compareFields(prev, next rbxdump.Fields) rbxdump.Fields {
 		p := prev[name]
 		switch n := n.(type) {
 		case bool:
-			if v, ok := p.(bool); !ok || v != n {
+			if p, ok := p.(bool); !ok || p != n {
 				fields[name] = n
 			}
 		case string:
-			if v, ok := p.(string); !ok || v != n {
+			if p, ok := p.(string); !ok || p != n {
 				fields[name] = n
 			}
 		case []string:
-			if p, ok := p.([]string); !ok || !slices.Equal(p, n) {
+			if v, ok := p.([]string); !ok || !slices.Equal(v, n) {
 				fields[name] = n
 			}
 		case int:
@@ -100,7 +100,7 @@ func compareFields(prev, next rbxdump.Fields) rbxdump.Fields {
 				fields[name] = n
 			}
 		case rbxdump.PreferredDescriptor:
-			if v, ok := p.(rbxdump.PreferredDescriptor); !ok || v != n {
+			if p, ok := p.(rbxdump.PreferredDescriptor); !ok || p != n {
 				fields[name] = n
 			}
 		case rbxdump.Tags:
@@ -112,6 +112,12 @@ func compareFields(prev, next rbxdump.Fields) rbxdump.Fields {
 				fields[name] = n
 			}
 		}
+	}
+	for name := range prev {
+		if _, ok := next[name]; ok {
+			continue
+		}
+		fields[name] = nil
 	}
 	return fields
 }
@@ -181,7 +187,7 @@ func (d DiffClass) Diff() (actions []Action) {
 			Type:    Add,
 			Element: Class,
 			Primary: d.Next.Name,
-			Fields:  d.Next.Fields(),
+			Fields:  d.Next.Fields(nil),
 		})
 		if !d.ExcludeMembers {
 			for _, member := range d.Next.GetMembers() {
@@ -199,7 +205,7 @@ func (d DiffClass) Diff() (actions []Action) {
 	}
 
 	// Compare fields.
-	if fields := compareFields(d.Prev.Fields(), d.Next.Fields()); len(fields) > 0 {
+	if fields := compareFields(d.Prev.Fields(nil), d.Next.Fields(nil)); len(fields) > 0 {
 		actions = append(actions, Action{
 			Type:    Change,
 			Element: Class,
@@ -254,7 +260,7 @@ func (d DiffMember) Diff() (actions []Action) {
 			Element:   FromElement(d.Next),
 			Primary:   d.Class,
 			Secondary: d.Next.MemberName(),
-			Fields:    d.Next.Fields(),
+			Fields:    d.Next.Fields(nil),
 		})
 		return actions
 	} else if d.Next == nil {
@@ -268,7 +274,7 @@ func (d DiffMember) Diff() (actions []Action) {
 	}
 
 	// Compare fields.
-	if fields := compareFields(d.Prev.Fields(), d.Next.Fields()); len(fields) > 0 {
+	if fields := compareFields(d.Prev.Fields(nil), d.Next.Fields(nil)); len(fields) > 0 {
 		actions = append(actions, Action{
 			Type:      Change,
 			Element:   FromElement(d.Prev),
@@ -301,7 +307,7 @@ func (d DiffEnum) Diff() (actions []Action) {
 			Type:    Add,
 			Element: Enum,
 			Primary: d.Next.Name,
-			Fields:  d.Next.Fields(),
+			Fields:  d.Next.Fields(nil),
 		})
 		if !d.ExcludeEnumItems {
 			for _, item := range d.Next.GetEnumItems() {
@@ -319,7 +325,7 @@ func (d DiffEnum) Diff() (actions []Action) {
 	}
 
 	// Compare fields.
-	if fields := compareFields(d.Prev.Fields(), d.Next.Fields()); len(fields) > 0 {
+	if fields := compareFields(d.Prev.Fields(nil), d.Next.Fields(nil)); len(fields) > 0 {
 		actions = append(actions, Action{
 			Type:    Change,
 			Element: Enum,
@@ -367,7 +373,7 @@ func (d DiffEnumItem) Diff() (actions []Action) {
 			Element:   EnumItem,
 			Primary:   d.Enum,
 			Secondary: d.Next.Name,
-			Fields:    d.Next.Fields(),
+			Fields:    d.Next.Fields(nil),
 		})
 		return actions
 	} else if d.Next == nil {
@@ -381,7 +387,7 @@ func (d DiffEnumItem) Diff() (actions []Action) {
 	}
 
 	// Compare fields.
-	if fields := compareFields(d.Prev.Fields(), d.Next.Fields()); len(fields) > 0 {
+	if fields := compareFields(d.Prev.Fields(nil), d.Next.Fields(nil)); len(fields) > 0 {
 		actions = append(actions, Action{
 			Type:      Change,
 			Element:   EnumItem,

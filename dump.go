@@ -6,318 +6,221 @@ import (
 	"sort"
 )
 
-// Fields describes a set of names mapped to values.
+// Fields describes a set of names mapped to values, for the purpose of diffing
+// and patching fields of an element. Entries may be set and deleted, but values
+// must not be modified.
 type Fields map[string]interface{}
 
 // Fielder is implemented by any value that can get and set its fields from a
 // Fields map.
 type Fielder interface {
-	// Fields returns the set of fields present in the value. Values may be
-	// retained by the implementation.
-	Fields() Fields
-	// SetFields sets the fields of the value. Values must not be retained; they
-	// should be copied if necessary. Invalid fields are ignored.
-	SetFields(Fields)
+	// Fields populates f with the fields of the value that are present in f.
+	// Fields that are not present in the value are deleted from f. If f is nil,
+	// then a new Fields is created and populated with all fields. Returns the
+	// populated Fields.
+	//
+	// Must include only fields that are expected to be diffed and patched.
+	//
+	// Implementations may retain returned values.
+	Fields(f Fields) Fields
+	// SetFields receives fields from f and sets them on the value. Irrelevant
+	// fields are ignored.
+	//
+	// If possible, SetFields may convert any type to the field's canonical
+	// type. At a minimu, the implemntation must convert the field's type, and a
+	// general interface representation, according to the json package.
+	//
+	// Implementations must not retain received values; they should be copied if
+	// necessary.
+	SetFields(f Fields)
 }
 
-// Attempts to get a slice of T from v. get gets an individual element of type
-// T.
-//
-// When v is a value of type T, it is converted to a single-element slice of
-// that value.
-func convertSlice[T any](u *[]T, v any, get func(u *T, v any) bool) bool {
-	switch v := v.(type) {
+// Assigns value to fields[name].
+func fieldVal[T any](fields Fields, name string, value T) {
+	fields[name] = value
+}
+
+// If value is not zero, assigns value to fields[name]. Otherwise, fields[name]
+// is deleted.
+func fieldOpt[T comparable](fields Fields, name string, value T) {
+	var z T
+	if value == z {
+		delete(fields, name)
+		return
+	}
+	fields[name] = value
+}
+
+// If length of value is not zero, assigns value to fields[name]. Otherwise,
+// fields[name] is deleted.
+func fieldOptSlice[T any](fields Fields, name string, value []T) {
+	if len(value) == 0 {
+		delete(fields, name)
+		return
+	}
+	fields[name] = value
+}
+
+// Attempts to assign fields[name] to v. If the field is not present, then no
+// assignment is made. If the field is nil, then zero is assigned. Otherwise,
+// the field is assigned if it is a T or pointer to T. Returns whether the
+// assignment was successful.
+func normalize[T any](v *T, fields Fields, name string) bool {
+	u, ok := fields[name]
+	if !ok {
+		return false
+	}
+	return convert(v, u)
+}
+
+func convert[T any](v *T, u any) bool {
+	switch u := u.(type) {
 	case nil:
-		*u = nil
+		var z T
+		*v = z
 		return true
 	case T:
-		*u = []T{v}
+		*v = u
 		return true
 	case *T:
-		*u = []T{*v}
-		return true
-	case map[string]any:
-		ts := [1]T{}
-		if !get(&ts[0], v) {
-			return false
-		}
-		*u = ts[:]
-		return true
-	case []T:
-		*u = slices.Clone(v)
-		return true
-	case []any:
-		return convertAnySlice(u, v, get)
-	case []map[string]any:
-		return convertAnySlice(u, v, get)
-	}
-	return false
-}
-
-// Attempts to get a slice of type T from a slice of type U. get gets an
-// individual element of type T.
-func convertAnySlice[U any, T any](u *[]T, v []U, get func(u *T, v any) bool) bool {
-	ts := make([]T, len(v))
-	for i, v := range v {
-		var t T
-		if !get(&t, v) {
-			return false
-		}
-		ts[i] = t
-	}
-	*u = ts
-	return true
-}
-
-// Attempts to get a Parameter from v.
-func convertParameter(u *Parameter, v any) bool {
-	switch v := v.(type) {
-	case nil:
-		*u = Parameter{}
-		return true
-	case Parameter:
-		*u = v
-		return true
-	case *Parameter:
-		*u = *v
-		return true
-	case map[string]any:
-		var p Parameter
-		var ok bool
-		if !convertType(&p.Type, v["Type"]) {
-			return false
-		}
-		if p.Name, ok = v["Name"].(string); !ok {
-			return false
-		}
-		if p.Optional, ok = v["Optional"].(bool); !ok {
-			return false
-		}
-		if p.Optional {
-			if p.Default, ok = v["Default"].(string); !ok {
-				return false
-			}
-		}
-		*u = p
+		*v = *u
 		return true
 	}
 	return false
 }
 
-func convertType(u *Type, v any) bool {
-	switch v := v.(type) {
-	case nil:
-		*u = Type{}
-		return true
-	case Type:
-		*u = v
-		return true
-	case *Type:
-		*u = *v
-		return true
-	case map[string]any:
-		var t Type
-		var ok bool
-		if t.Category, ok = v["Category"].(string); !ok {
-			return false
-		}
-		if t.Name, ok = v["Name"].(string); !ok {
-			return false
-		}
-		*u = t
-		return true
-	}
-	return false
-}
-
-func getPreferredDescriptor(u *PreferredDescriptor, fields Fields, key string) bool {
-	v, ok := fields[key]
-	if !ok {
-		return false
-	}
-	switch v := v.(type) {
-	case nil:
-		*u = PreferredDescriptor{}
-		return true
-	case PreferredDescriptor:
-		*u = v
-	case *PreferredDescriptor:
-		*u = *v
-	case map[string]any:
-		var d PreferredDescriptor
-		var ok bool
-		if d.Name, ok = v["Name"].(string); !ok {
-			return false
-		}
-		if d.ThreadSafety, ok = v["ThreadSafety"].(string); !ok {
-			return false
-		}
-		*u = d
-		return true
-	}
-	return false
-}
-
-// Attempts to get a slice of strings from v.
-func convertStrings(u *[]string, v any) bool {
-	switch v := v.(type) {
-	case nil:
-		*u = nil
-	case []string:
-		*u = slices.Clone(v)
-		return true
-	case []any:
-		return convertAnySlice(u, v, func(u *string, v any) bool {
-			if v, ok := v.(string); ok {
-				*u = v
-				return true
-			}
-			return false
-		})
-	}
-	return false
-}
-
-// Attempts to get a value of type T from fields[key].
-func getPrimitive[T any](u *T, fields Fields, key string) bool {
-	v, ok := fields[key]
-	if !ok {
-		return false
-	}
-	switch v := v.(type) {
-	case nil:
-		var t T
-		*u = t
-		return true
-	case T:
-		*u = v
-		return true
-	}
-	return false
-}
-
+// Any numeric value.
 type number interface {
 	~float32 | ~float64 |
 		~int | ~int8 | ~int16 | ~int32 | ~int64 |
 		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr
 }
 
-// Attempts to get a number of type T from number value fields[key].
-func getNumber[T number](u *T, fields Fields, key string) bool {
-	v, ok := fields[key]
+// Attempts to assign fields[name] to v. If the field is not present, then no
+// assignment is made. If the field is nil, then zero is assigned. Otherwise,
+// the field is assigned if it is a number. Returns whether the assignment was
+// successful.
+func normalizeNumber[T number](v *T, fields Fields, name string) bool {
+	u, ok := fields[name]
 	if !ok {
 		return false
 	}
-	switch v := v.(type) {
+	return convertNumber(v, u)
+}
+
+func convertNumber[T number](v *T, u any) bool {
+	switch u := u.(type) {
 	case nil:
-		*u = T(0)
+		*v = T(0)
 	case float32:
-		*u = T(v)
+		*v = T(u)
 	case float64:
-		*u = T(v)
+		*v = T(u)
 	case int16:
-		*u = T(v)
+		*v = T(u)
 	case int32:
-		*u = T(v)
+		*v = T(u)
 	case int64:
-		*u = T(v)
+		*v = T(u)
 	case int8:
-		*u = T(v)
+		*v = T(u)
 	case int:
-		*u = T(v)
+		*v = T(u)
 	case uint16:
-		*u = T(v)
+		*v = T(u)
 	case uint32:
-		*u = T(v)
+		*v = T(u)
 	case uint64:
-		*u = T(v)
+		*v = T(u)
 	case uint8:
-		*u = T(v)
+		*v = T(u)
 	case uint:
-		*u = T(v)
+		*v = T(u)
 	case uintptr:
-		*u = T(v)
+		*v = T(u)
 	default:
 		return false
 	}
 	return true
 }
 
-// Attempts to get a slice of Parameters from fields[key].
-func getParameters(u *[]Parameter, fields Fields, key string) bool {
-	v, ok := fields[key]
-	if !ok {
-		return false
-	}
-	return convertSlice(u, v, convertParameter)
+// Receives any value and attempts to convert it to the value. Returns success.
+type normalizer interface {
+	normalize(any) bool
 }
 
-// Attempts to get a slice of Types from fields[key].
-func getReturnType(u *[]Type, fields Fields, key string) bool {
-	v, ok := fields[key]
+// Attempts to assign fields[name] to v. If the field is not present, then no
+// assignment is made. Otherwise, the field is assigned according it its
+// normalize method. Returns whether the assignment was successful.
+func normalizeType[T normalizer](v T, fields Fields, name string) bool {
+	f, ok := fields[name]
 	if !ok {
 		return false
 	}
-	return convertSlice(u, v, convertType)
+	return convertType(v, f)
 }
 
-// Attempts to get a Type from fields[key].
-func getType(u *Type, fields Fields, key string) bool {
-	v, ok := fields[key]
-	if !ok {
-		return false
-	}
-	return convertType(u, v)
+func convertType[T normalizer](v T, u any) bool {
+	return v.normalize(u)
 }
 
-// Attempts to get a slice of strings from fields[key].
-func getStrings(u *[]string, fields Fields, key string) bool {
-	v, ok := fields[key]
+func normalizeSlice[T any](v *[]T, fields Fields, name string, get func(v *T, u any) bool) bool {
+	u, ok := fields[name]
 	if !ok {
 		return false
 	}
-	return convertStrings(u, v)
+	return convertSlice(v, u, get)
 }
 
-// Attempts to get Tags from fields[key].
-func getTags(u *Tags, fields Fields, key string) bool {
-	v, ok := fields[key]
-	if !ok {
-		return false
-	}
-	switch v := v.(type) {
+func convertSlice[T any](v *[]T, u any, get func(v *T, u any) bool) bool {
+	switch u := u.(type) {
 	case nil:
-		*u = nil
+		*v = nil
 		return true
-	case Tags:
-		*u = v.GetTags()
+	case T:
+		*v = []T{u}
 		return true
-	case []string:
-		*u = slices.Clone(v)
+	case *T:
+		*v = []T{*u}
 		return true
-	case []any:
-		var s []string
-		if !convertStrings(&s, v) {
+	case map[string]any:
+		var ts [1]T
+		if !get(&ts[0], u) {
 			return false
 		}
-		*u = s
+		*v = ts[:]
+	case []T:
+		*v = slices.Clone(u)
 		return true
+	case []any:
+		return convertAnySlice(v, u, get)
+	case []map[string]any:
+		return convertAnySlice(v, u, get)
 	}
 	return false
 }
 
-// If pd is non-zero, then assign it in fields to "PreferredDescriptor".
-func includePD(fields Fields, pd PreferredDescriptor) {
-	if pd != (PreferredDescriptor{}) {
-		fields["PreferredDescriptor"] = pd
+func convertAnySlice[U any, T any](v *[]T, u []U, get func(v *T, u any) bool) bool {
+	ts := make([]T, len(u))
+	for i, u := range u {
+		if !get(&ts[i], u) {
+			return false
+		}
 	}
+	*v = ts
+	return true
 }
 
-// If tags is not empty, then assign it in fields to "Tags".
-func includeTags(fields Fields, tags []string) {
-	if len(tags) > 0 {
-		fields["Tags"] = tags
-	}
+func normalizeParameters(v *[]Parameter, fields Fields, name string) bool {
+	return normalizeSlice(v, fields, name, func(v *Parameter, u any) bool {
+		return (*v).normalize(u)
+	})
+}
+
+func normalizeReturnType(v *[]Type, fields Fields, name string) bool {
+	return normalizeSlice(v, fields, name, func(v *Type, u any) bool {
+		return (*v).normalize(u)
+	})
 }
 
 // Root represents the top-level structure of an API dump.
@@ -375,34 +278,6 @@ func (root *Root) Copy() *Root {
 	return croot
 }
 
-// Fields implements the Fielder interface.
-func (root *Root) Fields() Fields {
-	return Fields{
-		"Classes": root.Classes,
-		"Enums":   root.Enums,
-	}
-}
-
-// SetFields implements the Fielder interface.
-func (root *Root) SetFields(fields Fields) {
-	if v, ok := fields["Classes"]; ok {
-		if v, ok := v.(map[string]*Class); ok {
-			root.Classes = make(map[string]*Class, len(v))
-			for k, v := range v {
-				root.Classes[k] = v.Copy()
-			}
-		}
-	}
-	if v, ok := fields["Enums"]; ok {
-		if v, ok := v.(map[string]*Enum); ok {
-			root.Enums = make(map[string]*Enum, len(v))
-			for k, v := range v {
-				root.Enums[k] = v.Copy()
-			}
-		}
-	}
-}
-
 // Class represents a class defined in an API dump.
 type Class struct {
 	Name                string
@@ -455,33 +330,39 @@ func (class *Class) Copy() *Class {
 	return &cclass
 }
 
-// Fields implements the Fielder interface. Does not return the Members field.
-func (class *Class) Fields() Fields {
-	fields := Fields{
-		"Name":           class.Name,
-		"Superclass":     class.Superclass,
-		"MemoryCategory": class.MemoryCategory,
+// Fields implements the Fielder interface.
+func (class *Class) Fields(fields Fields) Fields {
+	if fields == nil {
+		fields = Fields{}
+		fieldVal(fields, "Superclass", class.Superclass)
+		fieldVal(fields, "MemoryCategory", class.MemoryCategory)
+		fieldOpt(fields, "PreferredDescriptor", class.PreferredDescriptor)
+		fieldOptSlice(fields, "Tags", class.Tags)
+		return fields
 	}
-	includePD(fields, class.PreferredDescriptor)
-	includeTags(fields, class.Tags)
+	for name := range fields {
+		switch name {
+		case "Superclass":
+			fieldVal(fields, name, class.Superclass)
+		case "MemoryCategory":
+			fieldVal(fields, name, class.MemoryCategory)
+		case "PreferredDescriptor":
+			fieldOpt(fields, "PreferredDescriptor", class.PreferredDescriptor)
+		case "Tags":
+			fieldOptSlice(fields, "Tags", class.Tags)
+		default:
+			delete(fields, name)
+		}
+	}
 	return fields
 }
 
 // SetFields implements the Fielder interface.
 func (class *Class) SetFields(fields Fields) {
-	getPrimitive(&class.Name, fields, "Name")
-	getPrimitive(&class.Superclass, fields, "Superclass")
-	getPrimitive(&class.MemoryCategory, fields, "MemoryCategory")
-	getPreferredDescriptor(&class.PreferredDescriptor, fields, "PreferredDescriptor")
-	getTags(&class.Tags, fields, "Tags")
-	if v, ok := fields["Members"]; ok {
-		if v, ok := v.(map[string]Member); ok {
-			class.Members = make(map[string]Member, len(v))
-			for k, v := range v {
-				class.Members[k] = v.MemberCopy()
-			}
-		}
-	}
+	normalize[string](&class.Superclass, fields, "Superclass")
+	normalize[string](&class.MemoryCategory, fields, "MemoryCategory")
+	normalizeType(&class.PreferredDescriptor, fields, "PreferredDescriptor")
+	normalizeType(&class.Tags, fields, "Tags")
 }
 
 // Property is a Member that represents a class property.
@@ -524,37 +405,61 @@ func (member *Property) Copy() *Property {
 	return &cmember
 }
 
-// Fields implements the Fielder interface.
-func (member *Property) Fields() Fields {
-	fields := Fields{
-		"Name":          member.Name,
-		"ValueType":     member.ValueType,
-		"Default":       member.Default,
-		"Category":      member.Category,
-		"ReadSecurity":  member.ReadSecurity,
-		"WriteSecurity": member.WriteSecurity,
-		"CanLoad":       member.CanLoad,
-		"CanSave":       member.CanSave,
-		"ThreadSafety":  member.ThreadSafety,
+func (member *Property) Fields(fields Fields) Fields {
+	if fields == nil {
+		fields = Fields{}
+		fieldVal(fields, "ValueType", member.ValueType)
+		fieldVal(fields, "Default", member.Default)
+		fieldVal(fields, "Category", member.Category)
+		fieldVal(fields, "ReadSecurity", member.ReadSecurity)
+		fieldVal(fields, "WriteSecurity", member.WriteSecurity)
+		fieldVal(fields, "CanLoad", member.CanLoad)
+		fieldVal(fields, "CanSave", member.CanSave)
+		fieldOpt(fields, "ThreadSafety", member.ThreadSafety)
+		fieldOpt(fields, "PreferredDescriptor", member.PreferredDescriptor)
+		fieldOptSlice(fields, "Tags", member.Tags)
+		return fields
 	}
-	includePD(fields, member.PreferredDescriptor)
-	includeTags(fields, member.Tags)
+	for name := range fields {
+		switch name {
+		case "ValueType":
+			fieldVal(fields, name, member.ValueType)
+		case "Default":
+			fieldVal(fields, name, member.Default)
+		case "Category":
+			fieldVal(fields, name, member.Category)
+		case "ReadSecurity":
+			fieldVal(fields, name, member.ReadSecurity)
+		case "WriteSecurity":
+			fieldVal(fields, name, member.WriteSecurity)
+		case "CanLoad":
+			fieldVal(fields, name, member.CanLoad)
+		case "CanSave":
+			fieldVal(fields, name, member.CanSave)
+		case "ThreadSafety":
+			fieldOpt(fields, name, member.ThreadSafety)
+		case "PreferredDescriptor":
+			fieldOpt(fields, name, member.PreferredDescriptor)
+		case "Tags":
+			fieldOptSlice(fields, name, member.Tags)
+		default:
+			delete(fields, name)
+		}
+	}
 	return fields
 }
 
-// SetFields implements the Fielder interface.
 func (member *Property) SetFields(fields Fields) {
-	getPrimitive(&member.Name, fields, "Name")
-	getType(&member.ValueType, fields, "ValueType")
-	getPrimitive(&member.Default, fields, "Default")
-	getPrimitive(&member.Category, fields, "Category")
-	getPrimitive(&member.ReadSecurity, fields, "ReadSecurity")
-	getPrimitive(&member.WriteSecurity, fields, "WriteSecurity")
-	getPrimitive(&member.CanLoad, fields, "CanLoad")
-	getPrimitive(&member.CanSave, fields, "CanSave")
-	getPrimitive(&member.ThreadSafety, fields, "ThreadSafety")
-	getPreferredDescriptor(&member.PreferredDescriptor, fields, "PreferredDescriptor")
-	getTags(&member.Tags, fields, "Tags")
+	normalizeType(&member.ValueType, fields, "ValueType")
+	normalize[string](&member.Default, fields, "Default")
+	normalize[string](&member.Category, fields, "Category")
+	normalize[string](&member.ReadSecurity, fields, "ReadSecurity")
+	normalize[string](&member.WriteSecurity, fields, "WriteSecurity")
+	normalize[bool](&member.CanLoad, fields, "CanLoad")
+	normalize[bool](&member.CanSave, fields, "CanSave")
+	normalize[string](&member.ThreadSafety, fields, "ThreadSafety")
+	normalizeType(&member.PreferredDescriptor, fields, "PreferredDescriptor")
+	normalizeType(&member.Tags, fields, "Tags")
 }
 
 // Function is a Member that represents a class function.
@@ -595,28 +500,46 @@ func (member *Function) Copy() *Function {
 }
 
 // Fields implements the Fielder interface.
-func (member *Function) Fields() Fields {
-	fields := Fields{
-		"Name":         member.Name,
-		"Parameters":   member.Parameters,
-		"ReturnType":   member.ReturnType,
-		"Security":     member.Security,
-		"ThreadSafety": member.ThreadSafety,
+func (member *Function) Fields(fields Fields) Fields {
+	if fields == nil {
+		fields = Fields{}
+		fieldVal(fields, "Parameters", member.Parameters)
+		fieldVal(fields, "ReturnType", member.ReturnType)
+		fieldVal(fields, "Security", member.Security)
+		fieldOpt(fields, "ThreadSafety", member.ThreadSafety)
+		fieldOpt(fields, "PreferredDescriptor", member.PreferredDescriptor)
+		fieldOptSlice(fields, "Tags", member.Tags)
+		return fields
 	}
-	includePD(fields, member.PreferredDescriptor)
-	includeTags(fields, member.Tags)
+	for name := range fields {
+		switch name {
+		case "Parameters":
+			fieldVal(fields, "Parameters", member.Parameters)
+		case "ReturnType":
+			fieldVal(fields, "ReturnType", member.ReturnType)
+		case "Security":
+			fieldVal(fields, "Security", member.Security)
+		case "ThreadSafety":
+			fieldOpt(fields, "ThreadSafety", member.ThreadSafety)
+		case "PreferredDescriptor":
+			fieldOpt(fields, "PreferredDescriptor", member.PreferredDescriptor)
+		case "Tags":
+			fieldOptSlice(fields, "Tags", member.Tags)
+		default:
+			delete(fields, name)
+		}
+	}
 	return fields
 }
 
 // SetFields implements the Fielder interface.
 func (member *Function) SetFields(fields Fields) {
-	getPrimitive(&member.Name, fields, "Name")
-	getParameters(&member.Parameters, fields, "Parameters")
-	getReturnType(&member.ReturnType, fields, "ReturnType")
-	getPrimitive(&member.Security, fields, "Security")
-	getPrimitive(&member.ThreadSafety, fields, "ThreadSafety")
-	getPreferredDescriptor(&member.PreferredDescriptor, fields, "PreferredDescriptor")
-	getTags(&member.Tags, fields, "Tags")
+	normalizeParameters(&member.Parameters, fields, "Parameters")
+	normalizeReturnType(&member.ReturnType, fields, "ReturnType")
+	normalize[string](&member.Security, fields, "Security")
+	normalize[string](&member.ThreadSafety, fields, "ThreadSafety")
+	normalizeType(&member.PreferredDescriptor, fields, "PreferredDescriptor")
+	normalizeType(&member.Tags, fields, "Tags")
 }
 
 // Event is a Member that represents a class event.
@@ -656,26 +579,42 @@ func (member *Event) Copy() *Event {
 }
 
 // Fields implements the Fielder interface.
-func (member *Event) Fields() Fields {
-	fields := Fields{
-		"Name":         member.Name,
-		"Parameters":   member.Parameters,
-		"Security":     member.Security,
-		"ThreadSafety": member.ThreadSafety,
+func (member *Event) Fields(fields Fields) Fields {
+	if fields == nil {
+		fields = Fields{}
+		fieldVal(fields, "Parameters", member.Parameters)
+		fieldVal(fields, "Security", member.Security)
+		fieldOpt(fields, "ThreadSafety", member.ThreadSafety)
+		fieldOpt(fields, "PreferredDescriptor", member.PreferredDescriptor)
+		fieldOptSlice(fields, "Tags", member.Tags)
+		return fields
 	}
-	includePD(fields, member.PreferredDescriptor)
-	includeTags(fields, member.Tags)
+	for name := range fields {
+		switch name {
+		case "Parameters":
+			fieldVal(fields, "Parameters", member.Parameters)
+		case "Security":
+			fieldVal(fields, "Security", member.Security)
+		case "ThreadSafety":
+			fieldOpt(fields, "ThreadSafety", member.ThreadSafety)
+		case "PreferredDescriptor":
+			fieldOpt(fields, "PreferredDescriptor", member.PreferredDescriptor)
+		case "Tags":
+			fieldOptSlice(fields, "Tags", member.Tags)
+		default:
+			delete(fields, name)
+		}
+	}
 	return fields
 }
 
 // SetFields implements the Fielder interface.
 func (member *Event) SetFields(fields Fields) {
-	getPrimitive(&member.Name, fields, "Name")
-	getParameters(&member.Parameters, fields, "Parameters")
-	getPrimitive(&member.Security, fields, "Security")
-	getPrimitive(&member.ThreadSafety, fields, "ThreadSafety")
-	getPreferredDescriptor(&member.PreferredDescriptor, fields, "PreferredDescriptor")
-	getTags(&member.Tags, fields, "Tags")
+	normalizeParameters(&member.Parameters, fields, "Parameters")
+	normalize[string](&member.Security, fields, "Security")
+	normalize[string](&member.ThreadSafety, fields, "ThreadSafety")
+	normalizeType(&member.PreferredDescriptor, fields, "PreferredDescriptor")
+	normalizeType(&member.Tags, fields, "Tags")
 }
 
 // Callback is a Member that represents a class callback.
@@ -716,28 +655,46 @@ func (member *Callback) Copy() *Callback {
 }
 
 // Fields implements the Fielder interface.
-func (member *Callback) Fields() Fields {
-	fields := Fields{
-		"Name":         member.Name,
-		"Parameters":   member.Parameters,
-		"ReturnType":   member.ReturnType,
-		"Security":     member.Security,
-		"ThreadSafety": member.ThreadSafety,
+func (member *Callback) Fields(fields Fields) Fields {
+	if fields == nil {
+		fields = Fields{}
+		fieldVal(fields, "Parameters", member.Parameters)
+		fieldVal(fields, "ReturnType", member.ReturnType)
+		fieldVal(fields, "Security", member.Security)
+		fieldOpt(fields, "ThreadSafety", member.ThreadSafety)
+		fieldOpt(fields, "PreferredDescriptor", member.PreferredDescriptor)
+		fieldOptSlice(fields, "Tags", member.Tags)
+		return fields
 	}
-	includePD(fields, member.PreferredDescriptor)
-	includeTags(fields, member.Tags)
+	for name := range fields {
+		switch name {
+		case "Parameters":
+			fieldVal(fields, "Parameters", member.Parameters)
+		case "ReturnType":
+			fieldVal(fields, "ReturnType", member.ReturnType)
+		case "Security":
+			fieldVal(fields, "Security", member.Security)
+		case "ThreadSafety":
+			fieldOpt(fields, "ThreadSafety", member.ThreadSafety)
+		case "PreferredDescriptor":
+			fieldOpt(fields, "PreferredDescriptor", member.PreferredDescriptor)
+		case "Tags":
+			fieldOptSlice(fields, "Tags", member.Tags)
+		default:
+			delete(fields, name)
+		}
+	}
 	return fields
 }
 
 // SetFields implements the Fielder interface.
 func (member *Callback) SetFields(fields Fields) {
-	getPrimitive(&member.Name, fields, "Name")
-	getParameters(&member.Parameters, fields, "Parameters")
-	getReturnType(&member.ReturnType, fields, "ReturnType")
-	getPrimitive(&member.Security, fields, "Security")
-	getPrimitive(&member.ThreadSafety, fields, "ThreadSafety")
-	getPreferredDescriptor(&member.PreferredDescriptor, fields, "PreferredDescriptor")
-	getTags(&member.Tags, fields, "Tags")
+	normalizeParameters(&member.Parameters, fields, "Parameters")
+	normalizeReturnType(&member.ReturnType, fields, "ReturnType")
+	normalize[string](&member.Security, fields, "Security")
+	normalize[string](&member.ThreadSafety, fields, "ThreadSafety")
+	normalizeType(&member.PreferredDescriptor, fields, "PreferredDescriptor")
+	normalizeType(&member.Tags, fields, "Tags")
 }
 
 // Enum represents an enum defined in an API dump.
@@ -785,28 +742,30 @@ func (enum *Enum) Copy() *Enum {
 }
 
 // Fields implements the Fielder interface. Does not return the Items field.
-func (enum *Enum) Fields() Fields {
-	fields := Fields{
-		"Name": enum.Name,
+func (enum *Enum) Fields(fields Fields) Fields {
+	if fields == nil {
+		fields = Fields{}
+		fieldOpt(fields, "PreferredDescriptor", enum.PreferredDescriptor)
+		fieldOptSlice(fields, "Tags", enum.Tags)
+		return fields
 	}
-	includePD(fields, enum.PreferredDescriptor)
-	includeTags(fields, enum.Tags)
+	for name := range fields {
+		switch name {
+		case "PreferredDescriptor":
+			fieldOpt(fields, "PreferredDescriptor", enum.PreferredDescriptor)
+		case "Tags":
+			fieldOptSlice(fields, "Tags", enum.Tags)
+		default:
+			delete(fields, name)
+		}
+	}
 	return fields
 }
 
 // SetFields implements the Fielder interface.
 func (enum *Enum) SetFields(fields Fields) {
-	getPrimitive(&enum.Name, fields, "Name")
-	getPreferredDescriptor(&enum.PreferredDescriptor, fields, "PreferredDescriptor")
-	getTags(&enum.Tags, fields, "Tags")
-	if v, ok := fields["Items"]; ok {
-		if v, ok := v.(map[string]*EnumItem); ok {
-			enum.Items = make(map[string]*EnumItem, len(v))
-			for k, v := range v {
-				enum.Items[k] = v.Copy()
-			}
-		}
-	}
+	normalizeType(&enum.PreferredDescriptor, fields, "PreferredDescriptor")
+	normalizeType(&enum.Tags, fields, "Tags")
 }
 
 // EnumItem represents an enum item.
@@ -828,26 +787,42 @@ func (item *EnumItem) Copy() *EnumItem {
 }
 
 // Fields implements the Fielder interface.
-func (item *EnumItem) Fields() Fields {
-	fields := Fields{
-		"Name":        item.Name,
-		"Value":       item.Value,
-		"Index":       item.Index,
-		"LegacyNames": item.LegacyNames,
+func (item *EnumItem) Fields(fields Fields) Fields {
+	if fields == nil {
+		fields = Fields{}
+		fieldVal(fields, "Value", item.Value)
+		fieldVal(fields, "Index", item.Index)
+		fieldOptSlice(fields, "LegacyNames", item.LegacyNames)
+		fieldOpt(fields, "PreferredDescriptor", item.PreferredDescriptor)
+		fieldOptSlice(fields, "Tags", item.Tags)
+		return fields
 	}
-	includePD(fields, item.PreferredDescriptor)
-	includeTags(fields, item.Tags)
+	for name := range fields {
+		switch name {
+		case "Value":
+			fieldVal(fields, "Value", item.Value)
+		case "Index":
+			fieldVal(fields, "Index", item.Index)
+		case "LegacyNames":
+			fieldOptSlice(fields, "LegacyNames", item.LegacyNames)
+		case "PreferredDescriptor":
+			fieldOpt(fields, name, item.PreferredDescriptor)
+		case "Tags":
+			fieldOptSlice(fields, name, item.Tags)
+		default:
+			delete(fields, name)
+		}
+	}
 	return fields
 }
 
 // SetFields implements the Fielder interface.
 func (item *EnumItem) SetFields(fields Fields) {
-	getPrimitive(&item.Name, fields, "Name")
-	getNumber(&item.Value, fields, "Value")
-	getNumber(&item.Index, fields, "Index")
-	getStrings(&item.LegacyNames, fields, "LegacyNames")
-	getPreferredDescriptor(&item.PreferredDescriptor, fields, "PreferredDescriptor")
-	getTags(&item.Tags, fields, "Tags")
+	normalizeNumber(&item.Value, fields, "Value")
+	normalize(&item.Index, fields, "Index")
+	normalizeSlice(&item.LegacyNames, fields, "LegacyNames", convert)
+	normalizeType(&item.PreferredDescriptor, fields, "PreferredDescriptor")
+	normalizeType(&item.Tags, fields, "Tags")
 }
 
 // Parameter represents a parameter of a function, event, or callback member.
@@ -865,6 +840,39 @@ func CopyParams(p []Parameter) []Parameter {
 	return c
 }
 
+func (p *Parameter) normalize(u any) bool {
+	switch u := u.(type) {
+	case nil:
+		*p = Parameter{}
+		return true
+	case Parameter:
+		*p = u
+		return true
+	case *Parameter:
+		*p = *u
+		return true
+	case map[string]any:
+		var v Parameter
+		if !convertType(&v.Type, u["Type"]) {
+			return false
+		}
+		if !convert(&v.Name, u["Name"]) {
+			return false
+		}
+		if !convert(&v.Optional, u["Optional"]) {
+			return false
+		}
+		if v.Optional {
+			if !convert(&v.Default, u["Default"]) {
+				return false
+			}
+		}
+		*p = v
+		return true
+	}
+	return false
+}
+
 // Type represents a value type.
 type Type struct {
 	Category string
@@ -879,11 +887,61 @@ func (typ Type) String() string {
 	return typ.Category + ":" + typ.Name
 }
 
+func (t *Type) normalize(u any) bool {
+	switch u := u.(type) {
+	case nil:
+		*t = Type{}
+		return true
+	case Type:
+		*t = u
+		return true
+	case *Type:
+		*t = *u
+		return true
+	case map[string]any:
+		var v Type
+		if !convert(&v.Category, u["Category"]) {
+			return false
+		}
+		if !convert(&v.Name, u["Name"]) {
+			return false
+		}
+		*t = v
+		return true
+	}
+	return false
+}
+
 // PreferredDescriptor refers to an alternative of a deprecated descriptor.
 type PreferredDescriptor struct {
 	// The name of the alternative descriptor.
 	Name         string
 	ThreadSafety string
+}
+
+func (p *PreferredDescriptor) normalize(u any) bool {
+	switch u := u.(type) {
+	case nil:
+		*p = PreferredDescriptor{}
+		return true
+	case PreferredDescriptor:
+		*p = u
+		return true
+	case *PreferredDescriptor:
+		*p = *u
+		return true
+	case map[string]any:
+		var v PreferredDescriptor
+		if !convert(&v.Name, u["Name"]) {
+			return false
+		}
+		if !convert(&v.ThreadSafety, u["ThreadSafety"]) {
+			return false
+		}
+		*p = v
+		return true
+	}
+	return false
 }
 
 // Tagger is implemented by any value that contains a set of tags.
@@ -948,4 +1006,21 @@ loop:
 		}
 		i++
 	}
+}
+
+func (tags *Tags) normalize(u any) bool {
+	switch u := u.(type) {
+	case nil:
+		*tags = nil
+		return true
+	case Tags:
+		*tags = u.GetTags()
+		return true
+	case []string:
+		*tags = slices.Clone(u)
+		return true
+	case []any:
+		return convertAnySlice((*[]string)(tags), u, convert)
+	}
+	return false
 }
