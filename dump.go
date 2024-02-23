@@ -35,32 +35,6 @@ type Fielder interface {
 	SetFields(f Fields)
 }
 
-// Assigns value to fields[name].
-func fieldVal[T any](fields Fields, name string, value T) {
-	fields[name] = value
-}
-
-// If value is not zero, assigns value to fields[name]. Otherwise, fields[name]
-// is deleted.
-func fieldOpt[T comparable](fields Fields, name string, value T) {
-	var z T
-	if value == z {
-		delete(fields, name)
-		return
-	}
-	fields[name] = value
-}
-
-// If length of value is not zero, assigns value to fields[name]. Otherwise,
-// fields[name] is deleted.
-func fieldOptSlice[T any](fields Fields, name string, value []T) {
-	if len(value) == 0 {
-		delete(fields, name)
-		return
-	}
-	fields[name] = value
-}
-
 // Attempts to assign fields[name] to v. If the field is not present, then no
 // assignment is made. If the field is nil, then zero is assigned. Otherwise,
 // the field is assigned if it is a T or pointer to T. Returns whether the
@@ -334,22 +308,22 @@ func (class *Class) Copy() *Class {
 func (class *Class) Fields(fields Fields) Fields {
 	if fields == nil {
 		fields = Fields{}
-		fieldVal(fields, "Superclass", class.Superclass)
-		fieldVal(fields, "MemoryCategory", class.MemoryCategory)
-		fieldOpt(fields, "PreferredDescriptor", class.PreferredDescriptor)
-		fieldOptSlice(fields, "Tags", class.Tags)
+		fields["Superclass"] = class.Superclass
+		fields["MemoryCategory"] = class.MemoryCategory
+		fields["PreferredDescriptor"] = class.PreferredDescriptor
+		fields["Tags"] = class.Tags
 		return fields
 	}
 	for name := range fields {
 		switch name {
 		case "Superclass":
-			fieldVal(fields, name, class.Superclass)
+			fields[name] = class.Superclass
 		case "MemoryCategory":
-			fieldVal(fields, name, class.MemoryCategory)
+			fields[name] = class.MemoryCategory
 		case "PreferredDescriptor":
-			fieldOpt(fields, "PreferredDescriptor", class.PreferredDescriptor)
+			fields["PreferredDescriptor"] = class.PreferredDescriptor
 		case "Tags":
-			fieldOptSlice(fields, "Tags", class.Tags)
+			fields["Tags"] = class.Tags
 		default:
 			delete(fields, name)
 		}
@@ -408,40 +382,40 @@ func (member *Property) Copy() *Property {
 func (member *Property) Fields(fields Fields) Fields {
 	if fields == nil {
 		fields = Fields{}
-		fieldVal(fields, "ValueType", member.ValueType)
-		fieldVal(fields, "Default", member.Default)
-		fieldVal(fields, "Category", member.Category)
-		fieldVal(fields, "ReadSecurity", member.ReadSecurity)
-		fieldVal(fields, "WriteSecurity", member.WriteSecurity)
-		fieldVal(fields, "CanLoad", member.CanLoad)
-		fieldVal(fields, "CanSave", member.CanSave)
-		fieldOpt(fields, "ThreadSafety", member.ThreadSafety)
-		fieldOpt(fields, "PreferredDescriptor", member.PreferredDescriptor)
-		fieldOptSlice(fields, "Tags", member.Tags)
+		fields["ValueType"] = member.ValueType
+		fields["Default"] = member.Default
+		fields["Category"] = member.Category
+		fields["ReadSecurity"] = member.ReadSecurity
+		fields["WriteSecurity"] = member.WriteSecurity
+		fields["CanLoad"] = member.CanLoad
+		fields["CanSave"] = member.CanSave
+		fields["ThreadSafety"] = member.ThreadSafety
+		fields["PreferredDescriptor"] = member.PreferredDescriptor
+		fields["Tags"] = member.Tags
 		return fields
 	}
 	for name := range fields {
 		switch name {
 		case "ValueType":
-			fieldVal(fields, name, member.ValueType)
+			fields[name] = member.ValueType
 		case "Default":
-			fieldVal(fields, name, member.Default)
+			fields[name] = member.Default
 		case "Category":
-			fieldVal(fields, name, member.Category)
+			fields[name] = member.Category
 		case "ReadSecurity":
-			fieldVal(fields, name, member.ReadSecurity)
+			fields[name] = member.ReadSecurity
 		case "WriteSecurity":
-			fieldVal(fields, name, member.WriteSecurity)
+			fields[name] = member.WriteSecurity
 		case "CanLoad":
-			fieldVal(fields, name, member.CanLoad)
+			fields[name] = member.CanLoad
 		case "CanSave":
-			fieldVal(fields, name, member.CanSave)
+			fields[name] = member.CanSave
 		case "ThreadSafety":
-			fieldOpt(fields, name, member.ThreadSafety)
+			fields[name] = member.ThreadSafety
 		case "PreferredDescriptor":
-			fieldOpt(fields, name, member.PreferredDescriptor)
+			fields[name] = member.PreferredDescriptor
 		case "Tags":
-			fieldOptSlice(fields, name, member.Tags)
+			fields[name] = member.Tags
 		default:
 			delete(fields, name)
 		}
@@ -503,28 +477,28 @@ func (member *Function) Copy() *Function {
 func (member *Function) Fields(fields Fields) Fields {
 	if fields == nil {
 		fields = Fields{}
-		fieldVal(fields, "Parameters", member.Parameters)
-		fieldVal(fields, "ReturnType", member.ReturnType)
-		fieldVal(fields, "Security", member.Security)
-		fieldOpt(fields, "ThreadSafety", member.ThreadSafety)
-		fieldOpt(fields, "PreferredDescriptor", member.PreferredDescriptor)
-		fieldOptSlice(fields, "Tags", member.Tags)
+		fields["Parameters"] = member.Parameters
+		fields["ReturnType"] = member.ReturnType
+		fields["Security"] = member.Security
+		fields["ThreadSafety"] = member.ThreadSafety
+		fields["PreferredDescriptor"] = member.PreferredDescriptor
+		fields["Tags"] = member.Tags
 		return fields
 	}
 	for name := range fields {
 		switch name {
 		case "Parameters":
-			fieldVal(fields, "Parameters", member.Parameters)
+			fields["Parameters"] = member.Parameters
 		case "ReturnType":
-			fieldVal(fields, "ReturnType", member.ReturnType)
+			fields["ReturnType"] = member.ReturnType
 		case "Security":
-			fieldVal(fields, "Security", member.Security)
+			fields["Security"] = member.Security
 		case "ThreadSafety":
-			fieldOpt(fields, "ThreadSafety", member.ThreadSafety)
+			fields["ThreadSafety"] = member.ThreadSafety
 		case "PreferredDescriptor":
-			fieldOpt(fields, "PreferredDescriptor", member.PreferredDescriptor)
+			fields["PreferredDescriptor"] = member.PreferredDescriptor
 		case "Tags":
-			fieldOptSlice(fields, "Tags", member.Tags)
+			fields["Tags"] = member.Tags
 		default:
 			delete(fields, name)
 		}
@@ -582,25 +556,25 @@ func (member *Event) Copy() *Event {
 func (member *Event) Fields(fields Fields) Fields {
 	if fields == nil {
 		fields = Fields{}
-		fieldVal(fields, "Parameters", member.Parameters)
-		fieldVal(fields, "Security", member.Security)
-		fieldOpt(fields, "ThreadSafety", member.ThreadSafety)
-		fieldOpt(fields, "PreferredDescriptor", member.PreferredDescriptor)
-		fieldOptSlice(fields, "Tags", member.Tags)
+		fields["Parameters"] = member.Parameters
+		fields["Security"] = member.Security
+		fields["ThreadSafety"] = member.ThreadSafety
+		fields["PreferredDescriptor"] = member.PreferredDescriptor
+		fields["Tags"] = member.Tags
 		return fields
 	}
 	for name := range fields {
 		switch name {
 		case "Parameters":
-			fieldVal(fields, "Parameters", member.Parameters)
+			fields["Parameters"] = member.Parameters
 		case "Security":
-			fieldVal(fields, "Security", member.Security)
+			fields["Security"] = member.Security
 		case "ThreadSafety":
-			fieldOpt(fields, "ThreadSafety", member.ThreadSafety)
+			fields["ThreadSafety"] = member.ThreadSafety
 		case "PreferredDescriptor":
-			fieldOpt(fields, "PreferredDescriptor", member.PreferredDescriptor)
+			fields["PreferredDescriptor"] = member.PreferredDescriptor
 		case "Tags":
-			fieldOptSlice(fields, "Tags", member.Tags)
+			fields["Tags"] = member.Tags
 		default:
 			delete(fields, name)
 		}
@@ -658,28 +632,28 @@ func (member *Callback) Copy() *Callback {
 func (member *Callback) Fields(fields Fields) Fields {
 	if fields == nil {
 		fields = Fields{}
-		fieldVal(fields, "Parameters", member.Parameters)
-		fieldVal(fields, "ReturnType", member.ReturnType)
-		fieldVal(fields, "Security", member.Security)
-		fieldOpt(fields, "ThreadSafety", member.ThreadSafety)
-		fieldOpt(fields, "PreferredDescriptor", member.PreferredDescriptor)
-		fieldOptSlice(fields, "Tags", member.Tags)
+		fields["Parameters"] = member.Parameters
+		fields["ReturnType"] = member.ReturnType
+		fields["Security"] = member.Security
+		fields["ThreadSafety"] = member.ThreadSafety
+		fields["PreferredDescriptor"] = member.PreferredDescriptor
+		fields["Tags"] = member.Tags
 		return fields
 	}
 	for name := range fields {
 		switch name {
 		case "Parameters":
-			fieldVal(fields, "Parameters", member.Parameters)
+			fields["Parameters"] = member.Parameters
 		case "ReturnType":
-			fieldVal(fields, "ReturnType", member.ReturnType)
+			fields["ReturnType"] = member.ReturnType
 		case "Security":
-			fieldVal(fields, "Security", member.Security)
+			fields["Security"] = member.Security
 		case "ThreadSafety":
-			fieldOpt(fields, "ThreadSafety", member.ThreadSafety)
+			fields["ThreadSafety"] = member.ThreadSafety
 		case "PreferredDescriptor":
-			fieldOpt(fields, "PreferredDescriptor", member.PreferredDescriptor)
+			fields["PreferredDescriptor"] = member.PreferredDescriptor
 		case "Tags":
-			fieldOptSlice(fields, "Tags", member.Tags)
+			fields["Tags"] = member.Tags
 		default:
 			delete(fields, name)
 		}
@@ -745,16 +719,16 @@ func (enum *Enum) Copy() *Enum {
 func (enum *Enum) Fields(fields Fields) Fields {
 	if fields == nil {
 		fields = Fields{}
-		fieldOpt(fields, "PreferredDescriptor", enum.PreferredDescriptor)
-		fieldOptSlice(fields, "Tags", enum.Tags)
+		fields["PreferredDescriptor"] = enum.PreferredDescriptor
+		fields["Tags"] = enum.Tags
 		return fields
 	}
 	for name := range fields {
 		switch name {
 		case "PreferredDescriptor":
-			fieldOpt(fields, "PreferredDescriptor", enum.PreferredDescriptor)
+			fields["PreferredDescriptor"] = enum.PreferredDescriptor
 		case "Tags":
-			fieldOptSlice(fields, "Tags", enum.Tags)
+			fields["Tags"] = enum.Tags
 		default:
 			delete(fields, name)
 		}
@@ -790,25 +764,25 @@ func (item *EnumItem) Copy() *EnumItem {
 func (item *EnumItem) Fields(fields Fields) Fields {
 	if fields == nil {
 		fields = Fields{}
-		fieldVal(fields, "Value", item.Value)
-		fieldVal(fields, "Index", item.Index)
-		fieldOptSlice(fields, "LegacyNames", item.LegacyNames)
-		fieldOpt(fields, "PreferredDescriptor", item.PreferredDescriptor)
-		fieldOptSlice(fields, "Tags", item.Tags)
+		fields["Value"] = item.Value
+		fields["Index"] = item.Index
+		fields["LegacyNames"] = item.LegacyNames
+		fields["PreferredDescriptor"] = item.PreferredDescriptor
+		fields["Tags"] = item.Tags
 		return fields
 	}
 	for name := range fields {
 		switch name {
 		case "Value":
-			fieldVal(fields, "Value", item.Value)
+			fields["Value"] = item.Value
 		case "Index":
-			fieldVal(fields, "Index", item.Index)
+			fields["Index"] = item.Index
 		case "LegacyNames":
-			fieldOptSlice(fields, "LegacyNames", item.LegacyNames)
+			fields["LegacyNames"] = item.LegacyNames
 		case "PreferredDescriptor":
-			fieldOpt(fields, name, item.PreferredDescriptor)
+			fields[name] = item.PreferredDescriptor
 		case "Tags":
-			fieldOptSlice(fields, name, item.Tags)
+			fields[name] = item.Tags
 		default:
 			delete(fields, name)
 		}
