@@ -164,10 +164,10 @@ type Action struct {
 	Primary string
 	// Secondary is the name of the secondary element. Applies only to Property,
 	// Function, Event, Callback, and EnumItem elements.
-	Secondary string
+	Secondary string `json:",omitempty"`
 	// Fields describes fields of the element. If Type is Add, this describes
 	// the initial values. If Type is Change, this describes the new values.
-	Fields rbxdump.Fields
+	Fields rbxdump.Fields `json:",omitempty"`
 }
 
 func (a *Action) UnmarshalJSON(b []byte) error {
