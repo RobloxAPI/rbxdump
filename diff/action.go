@@ -29,6 +29,14 @@ type Patcher interface {
 	Patch([]Action)
 }
 
+// Inverter is implemented by any value that has an Inverse method, which
+// receives a list of Actions and produces an inverse list of Actions. That is,
+// for a list of actions P that patches structure A into B, the inverse of P
+// will patch structure B back into A.
+type Inverter interface {
+	Inverse([]Action) []Action
+}
+
 // Type indicates the kind of transformation performed by an Action.
 type Type int
 

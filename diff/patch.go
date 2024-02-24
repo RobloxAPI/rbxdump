@@ -1,6 +1,8 @@
 package diff
 
 import (
+	"maps"
+
 	"github.com/robloxapi/rbxdump"
 )
 
@@ -60,6 +62,45 @@ func (root Patch) Patch(actions []Action) {
 			}
 		}
 	}
+}
+
+// Inverse implements the Inverter interface by producing the inverse of actions
+// according to the root.
+func (root Patch) Inverse(actions []Action) []Action {
+	reversed := make([]Action, len(actions))
+	for i, action := range actions {
+		rev := action
+		rev.Type = -rev.Type
+		rev.Fields = maps.Clone(rev.Fields)
+		switch rev.Type {
+		case Remove:
+			rev.Fields = nil
+		case Change:
+			switch rev.Element {
+			case Class:
+				rev.Fields = root.Classes[rev.Primary].Fields(rev.Fields)
+			case Property, Function, Event, Callback:
+				rev.Fields = root.Classes[rev.Primary].Members[rev.Secondary].Fields(rev.Fields)
+			case Enum:
+				rev.Fields = root.Enums[rev.Primary].Fields(rev.Fields)
+			case EnumItem:
+				rev.Fields = root.Enums[rev.Primary].Items[rev.Secondary].Fields(rev.Fields)
+			}
+		case Add:
+			switch rev.Element {
+			case Class:
+				rev.Fields = root.Classes[rev.Primary].Fields(rev.Fields)
+			case Property, Function, Event, Callback:
+				rev.Fields = root.Classes[rev.Primary].Members[rev.Secondary].Fields(rev.Fields)
+			case Enum:
+				rev.Fields = root.Enums[rev.Primary].Fields(rev.Fields)
+			case EnumItem:
+				rev.Fields = root.Enums[rev.Primary].Items[rev.Secondary].Fields(rev.Fields)
+			}
+		}
+		reversed[i] = rev
+	}
+	return reversed
 }
 
 // PatchClass is used to transform the embedded rbxdump.Class by applying a list
