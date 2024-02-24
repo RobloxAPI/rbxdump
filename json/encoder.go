@@ -202,7 +202,7 @@ func (root jRoot) MarshalJSON() (b []byte, err error) {
 }
 
 func (member jMember) MarshalJSON() (b []byte, err error) {
-	var jmember interface{}
+	var jmember any
 	switch member := member.Member.(type) {
 	case *rbxdump.Property:
 		m := jProperty{

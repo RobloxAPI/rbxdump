@@ -9,7 +9,7 @@ import (
 // Fields describes a set of names mapped to values, for the purpose of diffing
 // and patching fields of an element. Entries may be set and deleted, but values
 // must not be modified.
-type Fields map[string]interface{}
+type Fields map[string]any
 
 // Fielder is implemented by any value that can get and set its fields from a
 // Fields map.

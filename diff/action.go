@@ -68,7 +68,7 @@ const (
 
 // FromElement returns the Element corresponding to the given rbxdump element
 // type or a pointer to such. Returns Invalid for any other type.
-func FromElement(e interface{}) Element {
+func FromElement(e any) Element {
 	switch e.(type) {
 	case rbxdump.Class, *rbxdump.Class:
 		return Class
