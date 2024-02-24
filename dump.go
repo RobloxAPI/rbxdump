@@ -793,7 +793,7 @@ func (item *EnumItem) Fields(fields Fields) Fields {
 // SetFields implements the Fielder interface.
 func (item *EnumItem) SetFields(fields Fields) {
 	normalizeNumber(&item.Value, fields, "Value")
-	normalize(&item.Index, fields, "Index")
+	normalizeNumber(&item.Index, fields, "Index")
 	normalizeSlice(&item.LegacyNames, fields, "LegacyNames", convert)
 	normalizeType(&item.PreferredDescriptor, fields, "PreferredDescriptor")
 	normalizeType(&item.Tags, fields, "Tags")
