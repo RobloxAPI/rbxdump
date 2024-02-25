@@ -22,7 +22,9 @@ func (root *Patch) Patch(actions []Action) {
 		case Class:
 			switch action.Type {
 			case Add:
-				if _, ok := root.Classes[action.Primary]; !ok {
+				if class := root.Classes[action.Primary]; class != nil {
+					class.SetFields(action.Fields)
+				} else {
 					class := rbxdump.Class{Name: action.Primary}
 					class.SetFields(action.Fields)
 					if root.Classes == nil {
@@ -38,13 +40,15 @@ func (root *Patch) Patch(actions []Action) {
 				}
 			}
 		case Property, Function, Event, Callback:
-			if class, ok := root.Classes[action.Primary]; ok {
+			if class := root.Classes[action.Primary]; class != nil {
 				(&PatchClass{class}).Patch(actions[i : i+1])
 			}
 		case Enum:
 			switch action.Type {
 			case Add:
-				if _, ok := root.Enums[action.Primary]; !ok {
+				if enum := root.Enums[action.Primary]; enum != nil {
+					enum.SetFields(action.Fields)
+				} else {
 					enum := rbxdump.Enum{Name: action.Primary}
 					enum.SetFields(action.Fields)
 					if root.Enums == nil {
@@ -60,7 +64,7 @@ func (root *Patch) Patch(actions []Action) {
 				}
 			}
 		case EnumItem:
-			if enum, ok := root.Enums[action.Primary]; ok {
+			if enum := root.Enums[action.Primary]; enum != nil {
 				(&PatchEnum{enum}).Patch(actions[i : i+1])
 			}
 		}
@@ -167,101 +171,42 @@ func (class *PatchClass) Patch(actions []Action) {
 				class.SetFields(action.Fields)
 			}
 		case Property:
-			switch action.Type {
-			case Add:
-				if _, ok := class.Members[action.Secondary]; !ok {
-					member := rbxdump.Property{Name: action.Secondary}
-					member.SetFields(action.Fields)
-					if class.Members == nil {
-						class.Members = map[string]rbxdump.Member{}
-					}
-					class.Members[action.Secondary] = &member
-				}
-			case Remove:
-				if member, ok := class.Members[action.Secondary]; ok {
-					if _, ok := member.(*rbxdump.Property); ok {
-						delete(class.Members, action.Secondary)
-					}
-				}
-			case Change:
-				if member, ok := class.Members[action.Secondary]; ok {
-					if member, ok := member.(*rbxdump.Property); ok {
-						member.SetFields(action.Fields)
-					}
-				}
-			}
+			patchMember[*rbxdump.Property](class, action)
 		case Function:
-			switch action.Type {
-			case Add:
-				if _, ok := class.Members[action.Secondary]; !ok {
-					member := rbxdump.Function{Name: action.Secondary}
-					member.SetFields(action.Fields)
-					if class.Members == nil {
-						class.Members = map[string]rbxdump.Member{}
-					}
-					class.Members[action.Secondary] = &member
-				}
-			case Remove:
-				if member, ok := class.Members[action.Secondary]; ok {
-					if _, ok := member.(*rbxdump.Function); ok {
-						delete(class.Members, action.Secondary)
-					}
-				}
-			case Change:
-				if member, ok := class.Members[action.Secondary]; ok {
-					if member, ok := member.(*rbxdump.Function); ok {
-						member.SetFields(action.Fields)
-					}
-				}
-			}
+			patchMember[*rbxdump.Function](class, action)
 		case Event:
-			switch action.Type {
-			case Add:
-				if _, ok := class.Members[action.Secondary]; !ok {
-					member := rbxdump.Event{Name: action.Secondary}
-					member.SetFields(action.Fields)
-					if class.Members == nil {
-						class.Members = map[string]rbxdump.Member{}
-					}
-					class.Members[action.Secondary] = &member
-				}
-			case Remove:
-				if member, ok := class.Members[action.Secondary]; ok {
-					if _, ok := member.(*rbxdump.Event); ok {
-						delete(class.Members, action.Secondary)
-					}
-				}
-			case Change:
-				if member, ok := class.Members[action.Secondary]; ok {
-					if member, ok := member.(*rbxdump.Event); ok {
-						member.SetFields(action.Fields)
-					}
-				}
-			}
+			patchMember[*rbxdump.Event](class, action)
 		case Callback:
-			switch action.Type {
-			case Add:
-				if _, ok := class.Members[action.Secondary]; !ok {
-					member := rbxdump.Callback{Name: action.Secondary}
-					member.SetFields(action.Fields)
-					if class.Members == nil {
-						class.Members = map[string]rbxdump.Member{}
-					}
-					class.Members[action.Secondary] = &member
-				}
-			case Remove:
-				if member, ok := class.Members[action.Secondary]; ok {
-					if _, ok := member.(*rbxdump.Callback); ok {
-						delete(class.Members, action.Secondary)
-					}
-				}
-			case Change:
-				if member, ok := class.Members[action.Secondary]; ok {
-					if member, ok := member.(*rbxdump.Callback); ok {
-						member.SetFields(action.Fields)
-					}
-				}
+			patchMember[*rbxdump.Callback](class, action)
+		}
+	}
+}
+
+func patchMember[T rbxdump.Member](class *PatchClass, action Action) {
+	switch action.Type {
+	case Add:
+		if member, ok := class.Members[action.Secondary].(T); ok {
+			// Change matching type.
+			member.SetFields(action.Fields)
+			return
+		}
+		// Add new member or overwrite member of non-matching type.
+		if member := action.ToMember(); member != nil {
+			member.SetFields(action.Fields)
+			if class.Members == nil {
+				class.Members = map[string]rbxdump.Member{}
 			}
+			class.Members[action.Secondary] = member
+		}
+	case Remove:
+		if _, ok := class.Members[action.Secondary].(T); ok {
+			// Remove only if type matches.
+			delete(class.Members, action.Secondary)
+		}
+	case Change:
+		if member, ok := class.Members[action.Secondary].(T); ok {
+			// Change only if type matches.
+			member.SetFields(action.Fields)
 		}
 	}
 }
@@ -370,7 +315,9 @@ func (enum *PatchEnum) Patch(actions []Action) {
 		case EnumItem:
 			switch action.Type {
 			case Add:
-				if _, ok := enum.Items[action.Secondary]; !ok {
+				if item := enum.Items[action.Secondary]; item != nil {
+					item.SetFields(action.Fields)
+				} else {
 					item := rbxdump.EnumItem{Name: action.Secondary}
 					item.SetFields(action.Fields)
 					if enum.Items == nil {

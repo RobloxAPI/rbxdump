@@ -179,7 +179,7 @@ type Action struct {
 }
 
 // ToFielder returns a new element corresponding to the action's element type,
-// as a Fielder. The Name field is set according to the action's identifiers..
+// as a Fielder. The Name field is set according to the action's identifiers.
 // Returns nil if the type is invalid.
 func (a Action) ToFielder() rbxdump.Fielder {
 	switch a.Element {
