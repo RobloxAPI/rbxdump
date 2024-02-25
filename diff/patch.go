@@ -78,29 +78,72 @@ func (root Patch) Inverse(actions []Action) []Action {
 		switch rev.Type {
 		case Remove:
 			rev.Fields = nil
+			goto finish
 		case Change:
-			switch rev.Element {
-			case Class:
-				rev.Fields = root.Classes[rev.Primary].Fields(rev.Fields)
-			case Property, Function, Event, Callback:
-				rev.Fields = root.Classes[rev.Primary].Members[rev.Secondary].Fields(rev.Fields)
-			case Enum:
-				rev.Fields = root.Enums[rev.Primary].Fields(rev.Fields)
-			case EnumItem:
-				rev.Fields = root.Enums[rev.Primary].Items[rev.Secondary].Fields(rev.Fields)
+			if root.Root != nil {
+				switch rev.Element {
+				case Class:
+					if class, ok := root.Classes[rev.Primary]; ok {
+						rev.Fields = class.Fields(rev.Fields)
+						goto finish
+					}
+				case Property, Function, Event, Callback:
+					if class, ok := root.Classes[rev.Primary]; ok {
+						if member, ok := class.Members[rev.Secondary]; ok {
+							rev.Fields = member.Fields(rev.Fields)
+							goto finish
+						}
+					}
+				case Enum:
+					if enum, ok := root.Enums[rev.Primary]; ok {
+						rev.Fields = enum.Fields(rev.Fields)
+						goto finish
+					}
+				case EnumItem:
+					if enum, ok := root.Enums[rev.Primary]; ok {
+						if item, ok := enum.Items[rev.Secondary]; ok {
+							rev.Fields = item.Fields(rev.Fields)
+							goto finish
+						}
+					}
+				}
 			}
 		case Add:
-			switch rev.Element {
-			case Class:
-				rev.Fields = root.Classes[rev.Primary].Fields(rev.Fields)
-			case Property, Function, Event, Callback:
-				rev.Fields = root.Classes[rev.Primary].Members[rev.Secondary].Fields(rev.Fields)
-			case Enum:
-				rev.Fields = root.Enums[rev.Primary].Fields(rev.Fields)
-			case EnumItem:
-				rev.Fields = root.Enums[rev.Primary].Items[rev.Secondary].Fields(rev.Fields)
+			if root.Root != nil {
+				switch rev.Element {
+				case Class:
+					if class, ok := root.Classes[rev.Primary]; ok {
+						rev.Fields = class.Fields(rev.Fields)
+						goto finish
+					}
+				case Property, Function, Event, Callback:
+					if class, ok := root.Classes[rev.Primary]; ok {
+						if member, ok := class.Members[rev.Secondary]; ok {
+							rev.Fields = member.Fields(rev.Fields)
+							goto finish
+						}
+					}
+				case Enum:
+					if enum, ok := root.Enums[rev.Primary]; ok {
+						rev.Fields = enum.Fields(rev.Fields)
+						goto finish
+					}
+				case EnumItem:
+					if enum, ok := root.Enums[rev.Primary]; ok {
+						if item, ok := enum.Items[rev.Secondary]; ok {
+							rev.Fields = item.Fields(rev.Fields)
+							goto finish
+						}
+					}
+				}
 			}
 		}
+		if fielder := action.ToFielder(); fielder != nil {
+			rev.Fields = fielder.Fields(rev.Fields)
+		} else {
+			rev.Fields = rbxdump.Fields{}
+		}
+	finish:
 		reversed[i] = rev
 	}
 	return reversed
