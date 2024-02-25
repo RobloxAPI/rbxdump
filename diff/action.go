@@ -178,6 +178,53 @@ type Action struct {
 	Fields rbxdump.Fields `json:",omitempty"`
 }
 
+// ToFielder returns a new element corresponding to the action's element type,
+// as a Fielder. The Name field is set according to the action's identifiers..
+// Returns nil if the type is invalid.
+func (a Action) ToFielder() rbxdump.Fielder {
+	switch a.Element {
+	case Class:
+		return &rbxdump.Class{Name: a.Primary}
+	case Property:
+		return &rbxdump.Property{Name: a.Secondary}
+	case Function:
+		return &rbxdump.Function{Name: a.Secondary}
+	case Event:
+		return &rbxdump.Event{Name: a.Secondary}
+	case Callback:
+		return &rbxdump.Callback{Name: a.Secondary}
+	case Enum:
+		return &rbxdump.Enum{Name: a.Primary}
+	case EnumItem:
+		return &rbxdump.EnumItem{Name: a.Secondary}
+	default:
+		return nil
+	}
+}
+
+// ToPrimaryFielder is similar to ToFielder, but returns a new element
+// corresponding to the action's primary element type.
+func (a Action) ToPrimaryFielder() rbxdump.Fielder {
+	switch a.Element {
+	case Class:
+		return &rbxdump.Class{Name: a.Primary}
+	case Property:
+		return &rbxdump.Class{Name: a.Primary}
+	case Function:
+		return &rbxdump.Class{Name: a.Primary}
+	case Event:
+		return &rbxdump.Class{Name: a.Primary}
+	case Callback:
+		return &rbxdump.Class{Name: a.Primary}
+	case Enum:
+		return &rbxdump.Enum{Name: a.Primary}
+	case EnumItem:
+		return &rbxdump.Enum{Name: a.Primary}
+	default:
+		return nil
+	}
+}
+
 func (a *Action) UnmarshalJSON(b []byte) error {
 	var action struct {
 		Type      Type
@@ -189,27 +236,16 @@ func (a *Action) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &action); err != nil {
 		return err
 	}
-	if len(action.Fields) > 0 {
+	if action.Fields == nil {
+		action.Fields = rbxdump.Fields{}
+	} else if len(action.Fields) > 0 {
 		// Convert generic JSON structure to rbxdump values.
-		var f rbxdump.Fielder
-		switch action.Element {
-		case Class:
-			f = &rbxdump.Class{Name: action.Primary}
-		case Property:
-			f = &rbxdump.Property{Name: action.Secondary}
-		case Function:
-			f = &rbxdump.Function{Name: action.Secondary}
-		case Event:
-			f = &rbxdump.Event{Name: action.Secondary}
-		case Callback:
-			f = &rbxdump.Callback{Name: action.Secondary}
-		case Enum:
-			f = &rbxdump.Enum{Name: action.Primary}
-		case EnumItem:
-			f = &rbxdump.EnumItem{Name: action.Secondary}
+		if f := Action(action).ToFielder(); f != nil {
+			f.SetFields(action.Fields)
+			action.Fields = f.Fields(action.Fields)
+		} else {
+			action.Fields = rbxdump.Fields{}
 		}
-		f.SetFields(action.Fields)
-		action.Fields = f.Fields(action.Fields)
 	}
 	*a = Action(action)
 	return nil
