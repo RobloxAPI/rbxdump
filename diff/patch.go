@@ -39,7 +39,7 @@ func (root *Patch) Patch(actions []Action) {
 			}
 		case Property, Function, Event, Callback:
 			if class, ok := root.Classes[action.Primary]; ok {
-				PatchClass{class}.Patch(actions[i : i+1])
+				(&PatchClass{class}).Patch(actions[i : i+1])
 			}
 		case Enum:
 			switch action.Type {
@@ -61,7 +61,7 @@ func (root *Patch) Patch(actions []Action) {
 			}
 		case EnumItem:
 			if enum, ok := root.Enums[action.Primary]; ok {
-				PatchEnum{enum}.Patch(actions[i : i+1])
+				(&PatchEnum{enum}).Patch(actions[i : i+1])
 			}
 		}
 	}
@@ -156,7 +156,10 @@ type PatchClass struct {
 }
 
 // Patch implements the Patcher interface.
-func (class PatchClass) Patch(actions []Action) {
+func (class *PatchClass) Patch(actions []Action) {
+	if class.Class == nil {
+		class.Class = &rbxdump.Class{}
+	}
 	for _, action := range actions {
 		switch action.Element {
 		case Class:
@@ -270,7 +273,10 @@ type PatchProperty struct {
 }
 
 // Patch implements the Patcher interface.
-func (member PatchProperty) Patch(actions []Action) {
+func (member *PatchProperty) Patch(actions []Action) {
+	if member.Property == nil {
+		member.Property = &rbxdump.Property{}
+	}
 	for _, action := range actions {
 		switch action.Element {
 		case Property:
@@ -288,7 +294,10 @@ type PatchFunction struct {
 }
 
 // Patch implements the Patcher interface.
-func (member PatchFunction) Patch(actions []Action) {
+func (member *PatchFunction) Patch(actions []Action) {
+	if member.Function == nil {
+		member.Function = &rbxdump.Function{}
+	}
 	for _, action := range actions {
 		switch action.Element {
 		case Function:
@@ -306,7 +315,10 @@ type PatchEvent struct {
 }
 
 // Patch implements the Patcher interface.
-func (member PatchEvent) Patch(actions []Action) {
+func (member *PatchEvent) Patch(actions []Action) {
+	if member.Event == nil {
+		member.Event = &rbxdump.Event{}
+	}
 	for _, action := range actions {
 		switch action.Element {
 		case Event:
@@ -324,7 +336,10 @@ type PatchCallback struct {
 }
 
 // Patch implements the Patcher interface.
-func (member PatchCallback) Patch(actions []Action) {
+func (member *PatchCallback) Patch(actions []Action) {
+	if member.Callback == nil {
+		member.Callback = &rbxdump.Callback{}
+	}
 	for _, action := range actions {
 		switch action.Element {
 		case Callback:
@@ -342,7 +357,10 @@ type PatchEnum struct {
 }
 
 // Patch implements the Patcher interface.
-func (enum PatchEnum) Patch(actions []Action) {
+func (enum *PatchEnum) Patch(actions []Action) {
+	if enum.Enum == nil {
+		enum.Enum = &rbxdump.Enum{}
+	}
 	for _, action := range actions {
 		switch action.Element {
 		case Enum:
@@ -378,7 +396,10 @@ type PatchEnumItem struct {
 }
 
 // Patch implements the Patcher interface.
-func (item PatchEnumItem) Patch(actions []Action) {
+func (item *PatchEnumItem) Patch(actions []Action) {
+	if item.EnumItem == nil {
+		item.EnumItem = &rbxdump.EnumItem{}
+	}
 	for _, action := range actions {
 		switch action.Element {
 		case EnumItem:
