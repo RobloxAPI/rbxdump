@@ -225,6 +225,24 @@ func (a Action) ToPrimaryFielder() rbxdump.Fielder {
 	}
 }
 
+// ToMember returns a new member element corresponding to the action's element
+// type, as a Member. The Name field is set according to the action's
+// identifiers. Returns nil if the type is not a member.
+func (a Action) ToMember() rbxdump.Member {
+	switch a.Element {
+	case Property:
+		return &rbxdump.Property{Name: a.Secondary}
+	case Function:
+		return &rbxdump.Function{Name: a.Secondary}
+	case Event:
+		return &rbxdump.Event{Name: a.Secondary}
+	case Callback:
+		return &rbxdump.Callback{Name: a.Secondary}
+	default:
+		return nil
+	}
+}
+
 func (a *Action) UnmarshalJSON(b []byte) error {
 	var action struct {
 		Type      Type
