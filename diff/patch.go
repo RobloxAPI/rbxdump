@@ -13,7 +13,10 @@ type Patch struct {
 }
 
 // Patch implements the Patcher interface.
-func (root Patch) Patch(actions []Action) {
+func (root *Patch) Patch(actions []Action) {
+	if root.Root == nil {
+		root.Root = &rbxdump.Root{}
+	}
 	for i, action := range actions {
 		switch action.Element {
 		case Class:
