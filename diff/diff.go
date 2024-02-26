@@ -92,7 +92,7 @@ func compareFields(prev, next rbxdump.Fields) rbxdump.Fields {
 			case rbxdump.Type:
 				pa = []rbxdump.Type{p}
 			case []rbxdump.Type:
-				pa = n
+				pa = p
 			default:
 				continue
 			}
