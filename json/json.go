@@ -5,6 +5,7 @@ package json
 import (
 	"encoding/json"
 	"strconv"
+	"strings"
 
 	"github.com/robloxapi/rbxdump"
 )
@@ -66,32 +67,39 @@ type jProperty struct {
 	Serialization struct{ CanLoad, CanSave bool }
 	ThreadSafety  string `json:",omitempty"`
 	Tags          []jTag `json:",omitempty"`
-	ValueType     rbxdump.Type
+	ValueType     jType
 	Default       string
 }
 
 type jReturnType []rbxdump.Type
 
 func (t *jReturnType) UnmarshalJSON(b []byte) error {
-	var one rbxdump.Type
+	var one jType
 	if json.Unmarshal(b, &one) == nil {
-		*t = []rbxdump.Type{one}
+		*t = []rbxdump.Type{rbxdump.Type(one)}
 		return nil
 	}
 
-	var array []rbxdump.Type
+	var array []jType
 	if err := json.Unmarshal(b, &array); err != nil {
 		return err
 	}
-	*t = array
+	*t = make(jReturnType, len(array))
+	for i, v := range array {
+		(*t)[i] = rbxdump.Type(v)
+	}
 	return nil
 }
 
 func (t jReturnType) MarshalJSON() ([]byte, error) {
 	if len(t) == 1 {
-		return json.Marshal((t)[0])
+		return json.Marshal(jType((t)[0]))
 	}
-	return json.Marshal([]rbxdump.Type(t))
+	array := make([]jType, len(t))
+	for i, v := range t {
+		array[i] = jType(v)
+	}
+	return json.Marshal(array)
 }
 
 type jFunction struct {
@@ -142,7 +150,41 @@ type jParameter rbxdump.Parameter
 
 type jBasicParameter struct {
 	Name string
-	Type rbxdump.Type
+	Type jType
+}
+
+type jType struct {
+	Category string
+	Name     string
+	Optional bool
+}
+
+func (t jType) MarshalJSON() (b []byte, err error) {
+	var jt = struct {
+		Category string
+		Name     string
+	}{Category: t.Category, Name: t.Name}
+	if t.Optional {
+		jt.Name += "?"
+	}
+	return json.Marshal(jt)
+}
+
+func (t *jType) UnmarshalJSON(b []byte) error {
+	var jt struct {
+		Category string
+		Name     string
+	}
+	if err := json.Unmarshal(b, &jt); err != nil {
+		return err
+	}
+	t.Category = jt.Category
+	t.Name = jt.Name
+	if strings.HasSuffix(t.Name, "?") {
+		t.Name = strings.TrimSuffix(t.Name, "?")
+		t.Optional = true
+	}
+	return nil
 }
 
 type jTag struct {

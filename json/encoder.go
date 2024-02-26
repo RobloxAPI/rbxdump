@@ -208,7 +208,7 @@ func (member jMember) MarshalJSON() (b []byte, err error) {
 		m := jProperty{
 			MemberType:   "Property",
 			Name:         member.Name,
-			ValueType:    member.ValueType,
+			ValueType:    jType(member.ValueType),
 			Default:      member.Default,
 			Category:     member.Category,
 			ThreadSafety: member.ThreadSafety,
@@ -237,7 +237,7 @@ func (member jMember) MarshalJSON() (b []byte, err error) {
 	case *rbxdump.Event:
 		params := make([]jBasicParameter, len(member.Parameters))
 		for i, param := range member.Parameters {
-			params[i] = jBasicParameter{Type: param.Type, Name: param.Name}
+			params[i] = jBasicParameter{Type: jType(param.Type), Name: param.Name}
 		}
 		m := jEvent{
 			MemberType:   "Event",
@@ -251,7 +251,7 @@ func (member jMember) MarshalJSON() (b []byte, err error) {
 	case *rbxdump.Callback:
 		params := make([]jBasicParameter, len(member.Parameters))
 		for i, param := range member.Parameters {
-			params[i] = jBasicParameter{Type: param.Type, Name: param.Name}
+			params[i] = jBasicParameter{Type: jType(param.Type), Name: param.Name}
 		}
 		m := jCallback{
 			MemberType:   "Callback",
@@ -271,9 +271,9 @@ func (param jParameter) MarshalJSON() (b []byte, err error) {
 	var p struct {
 		Default *string `json:",omitempty"`
 		Name    string
-		Type    rbxdump.Type
+		Type    jType
 	}
-	p.Type = param.Type
+	p.Type = jType(param.Type)
 	p.Name = param.Name
 	if param.Optional {
 		p.Default = &param.Default

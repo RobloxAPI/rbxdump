@@ -4,6 +4,7 @@ package rbxdump
 import (
 	"slices"
 	"sort"
+	"strings"
 )
 
 // Fields describes a set of names mapped to values, for the purpose of diffing
@@ -851,12 +852,19 @@ func (p *Parameter) normalize(u any) bool {
 type Type struct {
 	Category string
 	Name     string
+	Optional bool `json:",omitempty"`
 }
 
 // String returns a string representation of the type.
 func (typ Type) String() string {
 	if typ.Category == "" {
+		if typ.Optional {
+			return typ.Name + "?"
+		}
 		return typ.Name
+	}
+	if typ.Optional {
+		return typ.Category + ":" + typ.Name + "?"
 	}
 	return typ.Category + ":" + typ.Name
 }
@@ -879,6 +887,12 @@ func (t *Type) normalize(u any) bool {
 		}
 		if !convert(&v.Name, u["Name"]) {
 			return false
+		}
+		if strings.HasSuffix(v.Name, "?") {
+			v.Name = strings.TrimSuffix(v.Name, "?")
+			v.Optional = true
+		} else {
+			convert(&v.Optional, u["Optional"])
 		}
 		*t = v
 		return true

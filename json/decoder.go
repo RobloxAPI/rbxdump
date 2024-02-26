@@ -82,7 +82,7 @@ func (jmember *jMember) UnmarshalJSON(b []byte) (err error) {
 		tags, pd := unmarshalTags(member.Tags)
 		jmember.Member = &rbxdump.Property{
 			Name:                member.Name,
-			ValueType:           member.ValueType,
+			ValueType:           rbxdump.Type(member.ValueType),
 			Default:             member.Default,
 			Category:            member.Category,
 			ReadSecurity:        member.Security.Read,
@@ -121,7 +121,7 @@ func (jmember *jMember) UnmarshalJSON(b []byte) (err error) {
 		}
 		params := make([]rbxdump.Parameter, len(member.Parameters))
 		for i, param := range member.Parameters {
-			params[i] = rbxdump.Parameter{Type: param.Type, Name: param.Name}
+			params[i] = rbxdump.Parameter{Type: rbxdump.Type(param.Type), Name: param.Name}
 		}
 		tags, pd := unmarshalTags(member.Tags)
 		jmember.Member = &rbxdump.Event{
@@ -140,7 +140,7 @@ func (jmember *jMember) UnmarshalJSON(b []byte) (err error) {
 		}
 		params := make([]rbxdump.Parameter, len(member.Parameters))
 		for i, param := range member.Parameters {
-			params[i] = rbxdump.Parameter{Type: param.Type, Name: param.Name}
+			params[i] = rbxdump.Parameter{Type: rbxdump.Type(param.Type), Name: param.Name}
 		}
 		tags, pd := unmarshalTags(member.Tags)
 		jmember.Member = &rbxdump.Callback{
@@ -164,12 +164,12 @@ func (param *jParameter) UnmarshalJSON(b []byte) (err error) {
 	var p struct {
 		Default *string `json:",omitempty"`
 		Name    string
-		Type    rbxdump.Type
+		Type    jType
 	}
 	if err := json.Unmarshal(b, &p); err != nil {
 		return err
 	}
-	param.Type = p.Type
+	param.Type = rbxdump.Type(p.Type)
 	param.Name = p.Name
 	if p.Default != nil {
 		param.Optional = true
