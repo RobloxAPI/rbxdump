@@ -2,6 +2,7 @@
 package rbxdump
 
 import (
+	"encoding/json"
 	"slices"
 	"sort"
 	"strings"
@@ -437,6 +438,13 @@ func (member *Property) SetFields(fields Fields) {
 	normalizeType(&member.Tags, fields, "Tags")
 }
 
+func (member *Property) MarshalJSON() ([]byte, error) {
+	fields := member.Fields(nil)
+	fields["Name"] = member.Name
+	fields["MemberType"] = member.MemberType()
+	return json.Marshal(fields)
+}
+
 // Function is a Member that represents a class function.
 type Function struct {
 	Name                string
@@ -517,6 +525,13 @@ func (member *Function) SetFields(fields Fields) {
 	normalizeType(&member.Tags, fields, "Tags")
 }
 
+func (member *Function) MarshalJSON() ([]byte, error) {
+	fields := member.Fields(nil)
+	fields["Name"] = member.Name
+	fields["MemberType"] = member.MemberType()
+	return json.Marshal(fields)
+}
+
 // Event is a Member that represents a class event.
 type Event struct {
 	Name                string
@@ -590,6 +605,13 @@ func (member *Event) SetFields(fields Fields) {
 	normalize[string](&member.ThreadSafety, fields, "ThreadSafety")
 	normalizeType(&member.PreferredDescriptor, fields, "PreferredDescriptor")
 	normalizeType(&member.Tags, fields, "Tags")
+}
+
+func (member *Event) MarshalJSON() ([]byte, error) {
+	fields := member.Fields(nil)
+	fields["Name"] = member.Name
+	fields["MemberType"] = member.MemberType()
+	return json.Marshal(fields)
 }
 
 // Callback is a Member that represents a class callback.
@@ -670,6 +692,13 @@ func (member *Callback) SetFields(fields Fields) {
 	normalize[string](&member.ThreadSafety, fields, "ThreadSafety")
 	normalizeType(&member.PreferredDescriptor, fields, "PreferredDescriptor")
 	normalizeType(&member.Tags, fields, "Tags")
+}
+
+func (member *Callback) MarshalJSON() ([]byte, error) {
+	fields := member.Fields(nil)
+	fields["Name"] = member.Name
+	fields["MemberType"] = member.MemberType()
+	return json.Marshal(fields)
 }
 
 // Enum represents an enum defined in an API dump.
