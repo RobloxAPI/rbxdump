@@ -2,6 +2,7 @@ package diff
 
 import (
 	"slices"
+	"sort"
 
 	"github.com/robloxapi/rbxdump"
 )
@@ -122,9 +123,38 @@ func compareFields(prev, next rbxdump.Fields) rbxdump.Fields {
 	return fields
 }
 
+// appendFields appends a template action containing fields. If separate is
+// true, then each field will produce a separate action. Otherwise, all fields
+// will be grouped into one action.
+func appendFields(actions []Action, separate bool, fields rbxdump.Fields, template Action) []Action {
+	if len(fields) == 0 {
+		return actions
+	}
+
+	if !separate {
+		template.Fields = fields
+		return append(actions, template)
+	}
+
+	names := make([]string, 0, len(fields))
+	for name := range fields {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		value := fields[name]
+		template.Fields = rbxdump.Fields{name: value}
+		actions = append(actions, template)
+	}
+	return actions
+}
+
 // Diff is a Differ that finds differences between two rbxdump.Root values.
 type Diff struct {
 	Prev, Next *rbxdump.Root
+	// If true, then each change action will have exactly one field. Otherwise,
+	// an action will have all changed fields grouped together.
+	SeparateFields bool
 }
 
 // Diff implements the Differ interface.
@@ -132,35 +162,35 @@ func (d Diff) Diff() (actions []Action) {
 	if d.Prev != nil && d.Next != nil {
 		for _, p := range d.Prev.GetClasses() {
 			n := d.Next.Classes[p.Name]
-			actions = append(actions, DiffClass{Prev: p, Next: n}.Diff()...)
+			actions = append(actions, DiffClass{Prev: p, Next: n, SeparateFields: d.SeparateFields}.Diff()...)
 		}
 		for _, n := range d.Next.GetClasses() {
 			if p := d.Prev.Classes[n.Name]; p == nil {
-				actions = append(actions, DiffClass{Next: n}.Diff()...)
+				actions = append(actions, DiffClass{Next: n, SeparateFields: d.SeparateFields}.Diff()...)
 			}
 		}
 		for _, p := range d.Prev.GetEnums() {
 			n := d.Next.Enums[p.Name]
-			actions = append(actions, DiffEnum{Prev: p, Next: n}.Diff()...)
+			actions = append(actions, DiffEnum{Prev: p, Next: n, SeparateFields: d.SeparateFields}.Diff()...)
 		}
 		for _, n := range d.Next.GetEnums() {
 			if p := d.Prev.Enums[n.Name]; p == nil {
-				actions = append(actions, DiffEnum{Next: n}.Diff()...)
+				actions = append(actions, DiffEnum{Next: n, SeparateFields: d.SeparateFields}.Diff()...)
 			}
 		}
 	} else if d.Prev != nil {
 		for _, p := range d.Prev.GetClasses() {
-			actions = append(actions, DiffClass{Prev: p}.Diff()...)
+			actions = append(actions, DiffClass{Prev: p, SeparateFields: d.SeparateFields}.Diff()...)
 		}
 		for _, p := range d.Prev.GetEnums() {
-			actions = append(actions, DiffEnum{Prev: p}.Diff()...)
+			actions = append(actions, DiffEnum{Prev: p, SeparateFields: d.SeparateFields}.Diff()...)
 		}
 	} else if d.Next != nil {
 		for _, n := range d.Next.GetClasses() {
-			actions = append(actions, DiffClass{Next: n}.Diff()...)
+			actions = append(actions, DiffClass{Next: n, SeparateFields: d.SeparateFields}.Diff()...)
 		}
 		for _, n := range d.Next.GetEnums() {
-			actions = append(actions, DiffEnum{Next: n}.Diff()...)
+			actions = append(actions, DiffEnum{Next: n, SeparateFields: d.SeparateFields}.Diff()...)
 		}
 	}
 	return actions
@@ -172,6 +202,9 @@ type DiffClass struct {
 	Prev, Next *rbxdump.Class
 	// ExcludeMembers indicates whether members should be diffed.
 	ExcludeMembers bool
+	// If true, then each change action will have exactly one field. Otherwise,
+	// an action will have all changed fields grouped together.
+	SeparateFields bool
 }
 
 // Diff implements the Differ interface.
@@ -191,7 +224,7 @@ func (d DiffClass) Diff() (actions []Action) {
 		})
 		if !d.ExcludeMembers {
 			for _, member := range d.Next.GetMembers() {
-				actions = append(actions, DiffMember{Class: d.Next.Name, Next: member}.Diff()...)
+				actions = append(actions, DiffMember{Class: d.Next.Name, Next: member, SeparateFields: d.SeparateFields}.Diff()...)
 			}
 		}
 		return actions
@@ -204,15 +237,13 @@ func (d DiffClass) Diff() (actions []Action) {
 		return actions
 	}
 
-	// Compare fields.
-	if fields := compareFields(d.Prev.Fields(nil), d.Next.Fields(nil)); len(fields) > 0 {
-		actions = append(actions, Action{
-			Type:    Change,
-			Element: Class,
-			Primary: d.Prev.Name,
-			Fields:  fields,
-		})
-	}
+	// Compare and append fields.
+	fields := compareFields(d.Prev.Fields(nil), d.Next.Fields(nil))
+	actions = appendFields(actions, d.SeparateFields, fields, Action{
+		Type:    Change,
+		Element: Class,
+		Primary: d.Prev.Name,
+	})
 
 	// Compare members.
 	if d.ExcludeMembers {
@@ -221,17 +252,17 @@ func (d DiffClass) Diff() (actions []Action) {
 	for _, p := range d.Prev.GetMembers() {
 		n := d.Next.Members[p.MemberName()]
 		if compareMemberTypes(p, n) {
-			actions = append(actions, DiffMember{Class: d.Prev.Name, Prev: p, Next: n}.Diff()...)
+			actions = append(actions, DiffMember{Class: d.Prev.Name, Prev: p, Next: n, SeparateFields: d.SeparateFields}.Diff()...)
 			continue
 		}
 		// Member names match, but have different element types. Resolve by
 		// removing the previous and adding the next.
-		actions = append(actions, DiffMember{Class: d.Prev.Name, Prev: p}.Diff()...)
-		actions = append(actions, DiffMember{Class: d.Prev.Name, Next: n}.Diff()...)
+		actions = append(actions, DiffMember{Class: d.Prev.Name, Prev: p, SeparateFields: d.SeparateFields}.Diff()...)
+		actions = append(actions, DiffMember{Class: d.Prev.Name, Next: n, SeparateFields: d.SeparateFields}.Diff()...)
 	}
 	for _, n := range d.Next.GetMembers() {
 		if _, ok := d.Prev.Members[n.MemberName()]; !ok {
-			actions = append(actions, DiffMember{Class: d.Prev.Name, Next: n}.Diff()...)
+			actions = append(actions, DiffMember{Class: d.Prev.Name, Next: n, SeparateFields: d.SeparateFields}.Diff()...)
 		}
 	}
 
@@ -244,6 +275,9 @@ type DiffMember struct {
 	// Class is the name of the outer structure of the Prev value.
 	Class      string
 	Prev, Next rbxdump.Member
+	// If true, then each change action will have exactly one field. Otherwise,
+	// an action will have all changed fields grouped together.
+	SeparateFields bool
 }
 
 // Diff implements the Differ interface.
@@ -273,16 +307,14 @@ func (d DiffMember) Diff() (actions []Action) {
 		return actions
 	}
 
-	// Compare fields.
-	if fields := compareFields(d.Prev.Fields(nil), d.Next.Fields(nil)); len(fields) > 0 {
-		actions = append(actions, Action{
-			Type:      Change,
-			Element:   FromElement(d.Prev),
-			Primary:   d.Class,
-			Secondary: d.Prev.MemberName(),
-			Fields:    fields,
-		})
-	}
+	// Compare and append fields.
+	fields := compareFields(d.Prev.Fields(nil), d.Next.Fields(nil))
+	actions = appendFields(actions, d.SeparateFields, fields, Action{
+		Type:      Change,
+		Element:   FromElement(d.Prev),
+		Primary:   d.Class,
+		Secondary: d.Prev.MemberName(),
+	})
 	return actions
 }
 
@@ -292,6 +324,9 @@ type DiffEnum struct {
 	Prev, Next *rbxdump.Enum
 	// ExcludeEnumItems indicates whether enum items should be diffed.
 	ExcludeEnumItems bool
+	// If true, then each change action will have exactly one field. Otherwise,
+	// an action will have all changed fields grouped together.
+	SeparateFields bool
 }
 
 // Diff implements the Differ interface.
@@ -311,7 +346,7 @@ func (d DiffEnum) Diff() (actions []Action) {
 		})
 		if !d.ExcludeEnumItems {
 			for _, item := range d.Next.GetEnumItems() {
-				actions = append(actions, DiffEnumItem{Enum: d.Next.Name, Next: item}.Diff()...)
+				actions = append(actions, DiffEnumItem{Enum: d.Next.Name, Next: item, SeparateFields: d.SeparateFields}.Diff()...)
 			}
 		}
 		return actions
@@ -324,15 +359,13 @@ func (d DiffEnum) Diff() (actions []Action) {
 		return actions
 	}
 
-	// Compare fields.
-	if fields := compareFields(d.Prev.Fields(nil), d.Next.Fields(nil)); len(fields) > 0 {
-		actions = append(actions, Action{
-			Type:    Change,
-			Element: Enum,
-			Primary: d.Prev.Name,
-			Fields:  fields,
-		})
-	}
+	// Compare and append fields.
+	fields := compareFields(d.Prev.Fields(nil), d.Next.Fields(nil))
+	actions = appendFields(actions, d.SeparateFields, fields, Action{
+		Type:    Change,
+		Element: Enum,
+		Primary: d.Prev.Name,
+	})
 
 	// Compare items.
 	if d.ExcludeEnumItems {
@@ -340,11 +373,11 @@ func (d DiffEnum) Diff() (actions []Action) {
 	}
 	for _, p := range d.Prev.GetEnumItems() {
 		n := d.Next.Items[p.Name]
-		actions = append(actions, DiffEnumItem{Enum: d.Prev.Name, Prev: p, Next: n}.Diff()...)
+		actions = append(actions, DiffEnumItem{Enum: d.Prev.Name, Prev: p, Next: n, SeparateFields: d.SeparateFields}.Diff()...)
 	}
 	for _, n := range d.Next.GetEnumItems() {
 		if _, ok := d.Prev.Items[n.Name]; !ok {
-			actions = append(actions, DiffEnumItem{Enum: d.Prev.Name, Next: n}.Diff()...)
+			actions = append(actions, DiffEnumItem{Enum: d.Prev.Name, Next: n, SeparateFields: d.SeparateFields}.Diff()...)
 		}
 	}
 
@@ -357,6 +390,9 @@ type DiffEnumItem struct {
 	// Enum is the name of the outer structure of the Prev value.
 	Enum       string
 	Prev, Next *rbxdump.EnumItem
+	// If true, then each change action will have exactly one field. Otherwise,
+	// an action will have all changed fields grouped together.
+	SeparateFields bool
 }
 
 // Diff implements the Differ interface.
@@ -386,15 +422,13 @@ func (d DiffEnumItem) Diff() (actions []Action) {
 		return actions
 	}
 
-	// Compare fields.
-	if fields := compareFields(d.Prev.Fields(nil), d.Next.Fields(nil)); len(fields) > 0 {
-		actions = append(actions, Action{
-			Type:      Change,
-			Element:   EnumItem,
-			Primary:   d.Enum,
-			Secondary: d.Prev.Name,
-			Fields:    fields,
-		})
-	}
+	// Compare and append fields.
+	fields := compareFields(d.Prev.Fields(nil), d.Next.Fields(nil))
+	actions = appendFields(actions, d.SeparateFields, fields, Action{
+		Type:      Change,
+		Element:   EnumItem,
+		Primary:   d.Enum,
+		Secondary: d.Prev.Name,
+	})
 	return actions
 }
