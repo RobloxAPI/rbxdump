@@ -117,6 +117,27 @@ func (e Element) String() string {
 	return "<invalid>"
 }
 
+// Primary returns the primary element of this element.
+func (e Element) Primary() Element {
+	switch e {
+	case Class:
+		return Class
+	case Property:
+		return Class
+	case Function:
+		return Class
+	case Event:
+		return Class
+	case Callback:
+		return Class
+	case Enum:
+		return Enum
+	case EnumItem:
+		return Enum
+	}
+	return Invalid
+}
+
 // IsValid returns whether the value is a valid element.
 func (e Element) IsValid() bool {
 	return Class <= e && e <= EnumItem
